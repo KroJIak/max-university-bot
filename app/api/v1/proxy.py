@@ -238,7 +238,7 @@ async def get_student_teachers(
         )
     
     # Проверяем конфигурацию и доступность метода
-    config = await validate_university_api_config(db, "students_tech")
+    config = await validate_university_api_config(db, "students_teachers")
     
     # Вызываем University API для получения списка преподавателей (передаем student_email)
     try:

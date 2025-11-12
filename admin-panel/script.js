@@ -13,50 +13,63 @@ async function fetchWithFallback(url, options = {}) {
     return await fetch(url, options);
 }
 
-// Список функций с их описаниями и endpoints для University API
+// Список функций с их описаниями и endpoints для University API, разделенные по категориям
+const FEATURES_BY_CATEGORY = {
+    'management': [
+        {
+            id: 'students_login',
+            name: 'Логин студентов',
+            description: 'Выполнить логин на сайте университета, вернуть cookies',
+            defaultEndpoint: '/students/login'
+        },
+        {
+            id: 'students_personal_data',
+            name: 'Данные студента',
+            description: 'Получить данные студента с lk.chuvsu.ru',
+            defaultEndpoint: '/students/personal_data'
+        }
+    ],
+    'services': [
+        {
+            id: 'students_teachers',
+            name: 'Список преподавателей',
+            description: 'Получить список всех преподавателей',
+            defaultEndpoint: '/students/teachers'
+        },
+        {
+            id: 'students_schedule',
+            name: 'Расписание',
+            description: 'Получить расписание занятий (текущая или следующая неделя)',
+            defaultEndpoint: '/students/schedule'
+        },
+        {
+            id: 'students_contacts',
+            name: 'Контакты',
+            description: 'Получить контакты деканатов и кафедр',
+            defaultEndpoint: '/students/contacts'
+        },
+        {
+            id: 'students_platforms',
+            name: 'Веб-платформы',
+            description: 'Получить список полезных веб-платформ',
+            defaultEndpoint: '/students/platforms'
+        }
+    ],
+    'additional': [
+        {
+            id: 'students_teacher_info',
+            name: 'Информация о преподавателе',
+            description: 'Получить информацию о конкретном преподавателе (кафедры, фото)',
+            defaultEndpoint: '/students/teacher_info'
+        }
+    ]
+};
+
+// Получить все функции в одном массиве (для обратной совместимости)
 const FEATURES = [
-    {
-        id: 'students_login',
-        name: 'Логин студентов',
-        description: 'Выполнить логин на сайте университета, вернуть cookies',
-        defaultEndpoint: '/students/login'
-    },
-    {
-        id: 'students_tech',
-        name: 'Список преподавателей',
-        description: 'Получить список всех преподавателей (требует cookies в запросе)',
-        defaultEndpoint: '/students/teachers'
-    },
-    {
-        id: 'students_personal_data',
-        name: 'Данные студента',
-        description: 'Получить данные студента с lk.chuvsu.ru (пробует cookies от tt, если не работает - логин)',
-        defaultEndpoint: '/students/personal_data'
-    },
-    {
-        id: 'students_teacher_info',
-        name: 'Информация о преподавателе',
-        description: 'Получить информацию о конкретном преподавателе (кафедры, фото)',
-        defaultEndpoint: '/students/teacher_info'
-    },
-    {
-        id: 'students_schedule',
-        name: 'Расписание',
-        description: 'Получить расписание занятий (текущая или следующая неделя)',
-        defaultEndpoint: '/students/schedule'
-    },
-    {
-        id: 'students_contacts',
-        name: 'Контакты',
-        description: 'Получить контакты деканатов и кафедр',
-        defaultEndpoint: '/students/contacts'
-    },
-    {
-        id: 'students_platforms',
-        name: 'Веб-платформы',
-        description: 'Получить список полезных веб-платформ',
-        defaultEndpoint: '/students/platforms'
-    }
+    ...FEATURES_BY_CATEGORY.management,
+    ...FEATURES_BY_CATEGORY.services,
+    ...FEATURES_BY_CATEGORY.additional
 ];
 
 let currentConfig = {
@@ -129,14 +142,48 @@ async function saveConfig() {
     }
 }
 
-// Рендеринг списка функций
+// Рендеринг списка функций по категориям
 function renderFeatures() {
-    const featuresList = document.getElementById('features-list');
-    featuresList.innerHTML = '';
+    // Очищаем все секции
+    document.getElementById('management-features').innerHTML = '';
+    document.getElementById('services-features').innerHTML = '';
+    document.getElementById('additional-features').innerHTML = '';
 
-    FEATURES.forEach(feature => {
-        const isEnabled = currentConfig.endpoints[feature.id] !== undefined;
-        const endpoint = currentConfig.endpoints[feature.id] || feature.defaultEndpoint;
+    // Рендерим функции управления
+    renderFeatureCategory('management-features', FEATURES_BY_CATEGORY.management);
+    
+    // Рендерим сервисы
+    renderFeatureCategory('services-features', FEATURES_BY_CATEGORY.services);
+    
+    // Рендерим дополнительный функционал
+    renderFeatureCategory('additional-features', FEATURES_BY_CATEGORY.additional);
+
+    // Добавляем обработчики событий для переключателей
+    document.querySelectorAll('.switch').forEach(switchEl => {
+        switchEl.addEventListener('click', toggleFeature);
+    });
+
+    // Добавляем обработчики для полей endpoint
+    document.querySelectorAll('.endpoint-input').forEach(input => {
+        input.addEventListener('blur', updateEndpoint);
+    });
+}
+
+// Рендеринг функций в категории
+function renderFeatureCategory(containerId, features) {
+    const container = document.getElementById(containerId);
+    
+    features.forEach(feature => {
+        // Проверяем старый id students_tech и мигрируем на students_teachers
+        let featureId = feature.id;
+        if (featureId === 'students_tech' && currentConfig.endpoints['students_tech']) {
+            // Мигрируем старый ключ на новый
+            currentConfig.endpoints['students_teachers'] = currentConfig.endpoints['students_tech'];
+            delete currentConfig.endpoints['students_tech'];
+        }
+        
+        const isEnabled = currentConfig.endpoints[featureId] !== undefined;
+        const endpoint = currentConfig.endpoints[featureId] || feature.defaultEndpoint;
 
         const featureItem = document.createElement('div');
         featureItem.className = 'feature-item';
@@ -147,31 +194,21 @@ function renderFeatures() {
                 </div>
                 <div class="switch-container">
                     <span style="font-size: 14px; color: #666;">${isEnabled ? 'Включено' : 'Выключено'}</span>
-                    <div class="switch ${isEnabled ? 'active' : ''}" data-feature-id="${feature.id}"></div>
+                    <div class="switch ${isEnabled ? 'active' : ''}" data-feature-id="${featureId}"></div>
                 </div>
             </div>
             <div class="feature-description">${feature.description}</div>
             <input 
                 type="text" 
                 class="endpoint-input" 
-                data-feature-id="${feature.id}"
+                data-feature-id="${featureId}"
                 value="${endpoint}"
                 placeholder="Endpoint для ${feature.name}"
                 ${!isEnabled ? 'disabled' : ''}
             />
         `;
 
-        featuresList.appendChild(featureItem);
-    });
-
-    // Добавляем обработчики событий для переключателей
-    document.querySelectorAll('.switch').forEach(switchEl => {
-        switchEl.addEventListener('click', toggleFeature);
-    });
-
-    // Добавляем обработчики для полей endpoint
-    document.querySelectorAll('.endpoint-input').forEach(input => {
-        input.addEventListener('blur', updateEndpoint);
+        container.appendChild(featureItem);
     });
 }
 

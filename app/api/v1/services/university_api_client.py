@@ -47,7 +47,7 @@ async def call_university_api_tech(student_email: str, config: Dict[str, Any]) -
         httpx.RequestError: Если произошла ошибка подключения
     """
     base_url = config["base_url"].rstrip("/")
-    endpoint = config["endpoints"].get("students_tech", "/students/teachers")
+    endpoint = config["endpoints"].get("students_teachers", "/students/teachers")
     url = f"{base_url}{endpoint}"
     
     async with httpx.AsyncClient(timeout=30.0) as client:
