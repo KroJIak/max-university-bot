@@ -115,7 +115,7 @@ services:
     depends_on:
       - api
     volumes:
-      - cloudpub-max-config:/home/cloudpub
+      - ./cloudpub-config:/home/cloudpub
 
   cloudpub-admin-panel:
     image: cloudpub/cloudpub:latest-arm64
@@ -129,7 +129,7 @@ services:
     depends_on:
       - admin-panel
     volumes:
-      - cloudpub-max-config:/home/cloudpub
+      - ./cloudpub-config:/home/cloudpub
 
   cloudpub-university-api:
     image: cloudpub/cloudpub:latest-arm64
@@ -143,7 +143,7 @@ services:
     depends_on:
       - university-api
     volumes:
-      - cloudpub-max-config:/home/cloudpub
+      - ./cloudpub-config:/home/cloudpub
 
   cloudpub-mini-app:
     image: cloudpub/cloudpub:latest-arm64
@@ -157,9 +157,8 @@ services:
     depends_on:
       - mini-app
     volumes:
-      - cloudpub-max-config:/home/cloudpub
+      - ./cloudpub-config:/home/cloudpub
 
 volumes:
   postgres_data:
-  cloudpub-max-config:
 
