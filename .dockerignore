@@ -1,0 +1,26 @@
+# Игнорируем все, кроме необходимого для сборки бота
+.env
+.env.*
+*.md
+.git
+.gitignore
+*.log
+
+# Игнорируем другие сервисы
+app/
+postgres_data/
+
+# Игнорируем ненужные файлы
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Но НЕ игнорируем docs/API/max-bot-api-go - она нужна для replace в go.mod

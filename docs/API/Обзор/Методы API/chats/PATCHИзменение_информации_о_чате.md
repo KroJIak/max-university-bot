@@ -1,0 +1,136 @@
+# Изменение информации о чате
+
+PATCH`/chats/{chatId}`
+
+Позволяет редактировать информацию о чате, включая название, иконку и закреплённое сообщение.
+
+## [](#Авторизация)Авторизация
+
+`access_token`  
+apiKey 
+
+> Передача токена через query-параметры больше не поддерживается — используйте заголовок `Authorization: <token>`
+
+Токен для вызова HTTP-запросов присваивается при создании бота — его можно найти в разделе платформы MAX для партнёров **Чат-бот и мини-приложение** → **Настроить**
+
+Рекомендуем не разглашать токен посторонним, чтобы они не получили доступ к управлению ботом. Токен может быть отозван за нарушение Правил платформы
+
+## [](#Параметры)Параметры
+
+`chatId`  
+integer  <int64>   
+\\-?\d+
+
+ID чата
+
+## [](#Тело запроса)Тело запроса
+
+`icon`  
+object PhotoAttachmentRequestPayload Nullable optional
+
+Запрос на прикрепление изображения (все поля являются взаимоисключающими)
+
+`title`  
+string  Nullable optional  
+
+от `1` до `200` символов
+
+`pin`  
+string  Nullable optional  
+
+ID сообщения для закрепления в чате. Чтобы удалить закреплённое сообщение, используйте метод [unpin](/docs-api/methods/DELETE/chats/%7BchatId%7D/pin)
+
+`notify`  
+boolean  Nullable optional  
+
+По умолчанию: `true`
+
+Если `true`, участники получат системное уведомление об изменении
+
+## [](#Результат)Результат
+
+`chat_id`  
+integer  <int64>   
+
+ID чата
+
+`type`  
+enum ChatType
+
+Enum: `"chat"`
+
+Тип чата:
+
+  * `"chat"` — Групповой чат.
+
+`status`  
+enum ChatStatus
+
+Enum: `"active"` `"removed"` `"left"` `"closed"`
+
+Статус чата:
+
+  * `"active"` — Бот является активным участником чата.
+  * `"removed"` — Бот был удалён из чата.
+  * `"left"` — Бот покинул чат.
+  * `"closed"` — Чат был закрыт.
+
+`title`  
+string  Nullable   
+
+Отображаемое название чата. Может быть `null` для диалогов
+
+`icon`  
+object Image Nullable
+
+Иконка чата
+
+`last_event_time`  
+integer  <int64>   
+
+Время последнего события в чате
+
+`participants_count`  
+integer  <int32>   
+
+Количество участников чата. Для диалогов всегда `2`
+
+`owner_id`  
+integer  <int64> Nullable optional  
+
+ID владельца чата
+
+`participants`  
+object  Nullable optional  
+
+Участники чата с временем последней активности. Может быть `null`, если запрашивается список чатов
+
+`is_public`  
+boolean    
+
+Доступен ли чат публично (для диалогов всегда `false`)
+
+`link`  
+string  Nullable optional  
+
+Ссылка на чат
+
+`description`  
+string  Nullable   
+
+Описание чата
+
+`dialog_with_user`  
+object UserWithPhoto Nullable optional
+
+Данные о пользователе в диалоге (только для чатов типа `"dialog"`)
+
+`chat_message_id`  
+string  Nullable optional  
+
+ID сообщения, содержащего кнопку, через которую был инициирован чат
+
+`pinned_message`  
+object Message Nullable optional
+
+Закреплённое сообщение в чате (возвращается только при запросе конкретного чата)

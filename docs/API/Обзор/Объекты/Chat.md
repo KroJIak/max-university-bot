@@ -1,0 +1,95 @@
+# Chat
+
+`chat_id`  
+integer  <int64>   
+
+ID чата
+
+`type`  
+enum ChatType
+
+Enum: `"chat"`
+
+Тип чата:
+
+  * `"chat"` — Групповой чат.
+
+`status`  
+enum ChatStatus
+
+Enum: `"active"` `"removed"` `"left"` `"closed"`
+
+Статус чата:
+
+  * `"active"` — Бот является активным участником чата.
+  * `"removed"` — Бот был удалён из чата.
+  * `"left"` — Бот покинул чат.
+  * `"closed"` — Чат был закрыт.
+
+`title`  
+string  Nullable   
+
+Отображаемое название чата. Может быть `null` для диалогов
+
+`icon`  
+object Image Nullable
+
+Иконка чата
+
+`last_event_time`  
+integer  <int64>   
+
+Время последнего события в чате
+
+`participants_count`  
+integer  <int32>   
+
+Количество участников чата. Для диалогов всегда `2`
+
+`owner_id`  
+integer  <int64> Nullable optional  
+
+ID владельца чата
+
+`participants`  
+object  Nullable optional  
+
+Участники чата с временем последней активности. Может быть `null`, если запрашивается список чатов
+
+`is_public`  
+boolean    
+
+Доступен ли чат публично (для диалогов всегда `false`)
+
+`link`  
+string  Nullable optional  
+
+Ссылка на чат
+
+`description`  
+string  Nullable   
+
+Описание чата
+
+`dialog_with_user`  
+object UserWithPhoto Nullable optional
+
+Данные о пользователе в диалоге (только для чатов типа `"dialog"`)
+
+`chat_message_id`  
+string  Nullable optional  
+
+ID сообщения, содержащего кнопку, через которую был инициирован чат
+
+`pinned_message`  
+object Message Nullable optional
+
+Закреплённое сообщение в чате (возвращается только при запросе конкретного чата)
+
+## [](#Пример объекта)Пример объекта
+
+JSON
+
+Скопировать
+
+`{ "chat_id": 0, "type": "chat", "status": "active", "title": "string", "icon": { ... }, "last_event_time": 0, "participants_count": 0, "owner_id": 0, "participants": object, "is_public": true, "link": "string", "description": "string", "dialog_with_user": { ... }, "chat_message_id": "string", "pinned_message": { ... } }`
