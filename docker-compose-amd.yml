@@ -1,0 +1,168 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: maxbot_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-maxbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-maxbot123}
+      POSTGRES_DB: ${POSTGRES_DB:-maxbot_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-maxbot} -d ${POSTGRES_DB:-maxbot_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    env_file:
+      - .env
+
+  api:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: maxbot_api
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://maxbot:maxbot123@postgres:5432/maxbot_db}
+      - MAX_API_HOST=${MAX_API_HOST:-0.0.0.0}
+      - MAX_API_PORT=${MAX_API_PORT:-8000}
+      - MAX_API_DOMAIN_URL=${MAX_API_DOMAIN_URL:-}
+    ports:
+      - "${MAX_API_PORT:-8000}:${MAX_API_PORT:-8000}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./app:/app
+    env_file:
+      - .env
+
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: maxbot_bot
+    environment:
+      - MAX_BOT_TOKEN=${MAX_BOT_TOKEN}
+    depends_on:
+      - api
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  admin-panel:
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+    container_name: maxbot_admin_panel
+    environment:
+      - ADMIN_PANEL_HOST=${ADMIN_PANEL_HOST:-0.0.0.0}
+      - ADMIN_PANEL_PORT=${ADMIN_PANEL_PORT:-8080}
+      - ADMIN_PANEL_DOMAIN_URL=${ADMIN_PANEL_DOMAIN_URL:-}
+      - MAX_API_DOMAIN_URL=${MAX_API_DOMAIN_URL:-}
+    ports:
+      - "${ADMIN_PANEL_PORT:-8080}:8080"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  university-api:
+    build:
+      context: ./university-app
+      dockerfile: Dockerfile
+    container_name: maxbot_university_api
+    environment:
+      - UNIVERSITY_API_HOST=${UNIVERSITY_API_HOST:-0.0.0.0}
+      - UNIVERSITY_API_PORT=${UNIVERSITY_API_PORT:-8001}
+      - UNIVERSITY_API_DOMAIN_URL=${UNIVERSITY_API_DOMAIN_URL:-}
+      - UNIVERSITY_DATABASE_URL=${UNIVERSITY_DATABASE_URL:-postgresql://maxbot:maxbot123@postgres:5432/university_db}
+    ports:
+      - "${UNIVERSITY_API_PORT:-8001}:8001"
+    volumes:
+      - ./university-app:/app
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mini-app:
+    build:
+      context: ./mini-app
+      dockerfile: Dockerfile
+    container_name: maxbot_mini_app
+    environment:
+      - MINI_APP_HOST=${MINI_APP_HOST:-0.0.0.0}
+      - MINI_APP_PORT=${MINI_APP_PORT:-8002}
+      - MINI_APP_DOMAIN_URL=${MINI_APP_DOMAIN_URL:-}
+    ports:
+      - "${MINI_APP_PORT:-8002}:8002"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  cloudpub-api:
+    image: cloudpub/cloudpub:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TOKEN=${CLOUDPUB_TOKEN}
+      - HTTP=api:8000
+    command: run
+    depends_on:
+      - api
+    volumes:
+      - cloudpub-api-config:/home/cloudpub
+
+  cloudpub-admin-panel:
+    image: cloudpub/cloudpub:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TOKEN=${CLOUDPUB_TOKEN}
+      - HTTP=admin-panel:8080
+    command: run
+    depends_on:
+      - admin-panel
+    volumes:
+      - cloudpub-admin-panel-config:/home/cloudpub
+
+  cloudpub-university-api:
+    image: cloudpub/cloudpub:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TOKEN=${CLOUDPUB_TOKEN}
+      - HTTP=university-api:8001
+    command: run
+    depends_on:
+      - university-api
+    volumes:
+      - cloudpub-university-api-config:/home/cloudpub
+
+  cloudpub-mini-app:
+    image: cloudpub/cloudpub:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TOKEN=${CLOUDPUB_TOKEN}
+      - HTTP=mini-app:8002
+    command: run
+    depends_on:
+      - mini-app
+    volumes:
+      - cloudpub-mini-app-config:/home/cloudpub
+
+volumes:
+  postgres_data:
+  cloudpub-api-config:
+  cloudpub-admin-panel-config:
+  cloudpub-university-api-config:
+  cloudpub-mini-app-config:
+

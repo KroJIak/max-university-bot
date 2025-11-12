@@ -88,6 +88,21 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  mini-app:
+    build:
+      context: ./mini-app
+      dockerfile: Dockerfile
+    container_name: maxbot_mini_app
+    environment:
+      - MINI_APP_HOST=${MINI_APP_HOST:-0.0.0.0}
+      - MINI_APP_PORT=${MINI_APP_PORT:-8002}
+      - MINI_APP_DOMAIN_URL=${MINI_APP_DOMAIN_URL:-}
+    ports:
+      - "${MINI_APP_PORT:-8002}:8002"
+    env_file:
+      - .env
+    restart: unless-stopped
+
 volumes:
   postgres_data:
 

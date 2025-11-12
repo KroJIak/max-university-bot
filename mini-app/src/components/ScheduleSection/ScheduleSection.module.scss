@@ -1,0 +1,54 @@
+.section {
+  width: 100%;
+  padding: clamp(16px, 5vw, 24px);
+  border-radius: var(--radius-lg);
+  background: #23252d;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 20px 40px rgba(6, 9, 22, 0.45);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.moreButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.moreButton:hover {
+  color: var(--text-primary);
+}
+
+.moreIcon {
+  width: 24px;
+  height: 24px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+

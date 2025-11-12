@@ -1,0 +1,47 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-base: #272c38;
+  --bg-surface: #293863;
+  --bg-card: #293863;
+  --bg-card-soft: #293863;
+  --bg-tab: rgba(255, 255, 255, 0.08);
+  --bg-tab-active: #2554d6;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  --accent-primary: #4ba9ff;
+  --accent-warning: #ffad3a;
+  --accent-success: #5bd778;
+  --accent-border: rgba(255, 255, 255, 0.08);
+  --shadow-elevated: 0 16px 40px rgba(6, 9, 22, 0.55);
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --font-family: 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+input,
+textarea,
+button,
+select,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
