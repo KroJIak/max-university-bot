@@ -6,5 +6,10 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 8002,
+    allowedHosts: [
+      'max-miniapp.cloudpub.ru',
+      'localhost',
+      '.cloudpub.ru', // Разрешаем все поддомены cloudpub.ru
+    ],
   },
 });
