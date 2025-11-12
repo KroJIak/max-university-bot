@@ -88,6 +88,51 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  cloudpub-api:
+    image: cloudpub/cloudpub:latest-arm64
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TOKEN=${CLOUDPUB_TOKEN}
+      - HTTP=api:8000
+    command: run
+    depends_on:
+      - api
+    volumes:
+      - cloudpub-api-config:/home/cloudpub
+
+  cloudpub-university-api:
+    image: cloudpub/cloudpub:latest-arm64
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TOKEN=${CLOUDPUB_TOKEN}
+      - HTTP=university-api:8001
+    command: run
+    depends_on:
+      - university-api
+    volumes:
+      - cloudpub-university-api-config:/home/cloudpub
+
+  cloudpub-mini-app:
+    image: cloudpub/cloudpub:latest-arm64
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TOKEN=${CLOUDPUB_TOKEN}
+      - HTTP=mini-app:8002
+    command: run
+    depends_on:
+      - mini-app
+    volumes:
+      - cloudpub-mini-app-config:/home/cloudpub
+
 volumes:
   postgres_data:
+  cloudpub-api-config:
+  cloudpub-university-api-config:
+  cloudpub-mini-app-config:
 
