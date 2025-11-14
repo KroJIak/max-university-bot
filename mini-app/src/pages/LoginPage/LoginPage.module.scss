@@ -28,6 +28,27 @@
   flex-direction: column;
   gap: 10px;
   text-align: center;
+  align-items: center;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 70px;
+  border-radius: 22px;
+  background: rgba(91, 141, 255, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(123, 162, 255, 0.32),
+    0 14px 28px rgba(18, 28, 60, 0.45);
+}
+
+.logo svg {
+  width: 40px;
+  height: 40px;
+  fill: #ffffff;
+  opacity: 0.9;
 }
 
 .title {
@@ -41,45 +62,70 @@
   color: rgba(255, 255, 255, 0.68);
 }
 
-.universityList {
+.universitySelect {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.universityButton {
+.universityControl {
+  position: relative;
+}
+
+.universityInput {
   width: 100%;
-  border: none;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 14px 18px;
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 14, 28, 0.78);
   color: #ffffff;
   font-size: 15px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.universityInput:focus {
+  outline: none;
+  border-color: rgba(80, 140, 255, 0.85);
+  box-shadow: 0 0 0 3px rgba(80, 140, 255, 0.2);
+}
+
+.universitySuggestions {
+  position: absolute;
+  inset: calc(100% + 6px) 0 auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  background: rgba(12, 18, 34, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+
+.suggestionItem {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14px;
   font-weight: 600;
+  text-align: left;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.universityTitle {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.universitySubtitle {
-  margin-top: 4px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
-  font-weight: 500;
-}
-
-.universityButton:hover {
-  transform: translateY(-1px);
+.suggestionItem:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.universityButtonActive {
-  background: rgba(80, 140, 255, 0.22);
-  box-shadow: 0 16px 28px rgba(80, 140, 255, 0.25);
+.suggestionItemActive {
+  background: rgba(80, 140, 255, 0.18);
+  color: #ffffff;
 }
 
 .form {
@@ -117,13 +163,6 @@
   box-shadow: 0 0 0 3px rgba(80, 140, 255, 0.2);
 }
 
-.hint {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.56);
-  text-align: center;
-  margin-top: -4px;
-}
-
 .submit {
   width: 100%;
   border: none;
@@ -152,6 +191,24 @@
   font-size: 13px;
   color: rgba(255, 255, 255, 0.45);
   text-align: center;
+}
+
+.helper {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #ff5c5c;
+}
+
+.success {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #64d591;
 }
 
 

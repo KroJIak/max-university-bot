@@ -32,11 +32,14 @@ async def validate_university_api_config(db: Session, university_id: int, endpoi
             detail=f"University API не настроен для университета {university_id}"
         )
     
-    # Проверяем, включен ли endpoint (если endpoint отсутствует, считаем что он включен с дефолтным путем)
-    # Это позволяет использовать дефолтные endpoints, даже если они не настроены в БД
-    if endpoint_key not in config["endpoints"]:
-        # Endpoint не настроен, но это не ошибка - используем дефолтный путь
-        logger.warning(f"Endpoint {endpoint_key} не найден в конфигурации, используем дефолтный путь")
+    # Проверяем, указан ли endpoint в конфигурации
+    endpoints = config.get("endpoints", {})
+    if endpoint_key not in endpoints or not endpoints.get(endpoint_key) or endpoints.get(endpoint_key).strip() == "":
+        # Endpoint не настроен или пустой - возвращаем 404
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Endpoint '{endpoint_key}' не настроен для университета {university_id}"
+        )
     
     return config
 
@@ -61,10 +64,24 @@ async def perform_login(
     """
     try:
         login_result = await call_university_api_login(email, password, config)
-    except httpx.HTTPStatusError:
+    except httpx.HTTPStatusError as e:
+        # Логируем детали ошибки для диагностики
+        status_code = e.response.status_code
+        if status_code == 401:
+            error_detail = "Неверный email или пароль"
+        elif status_code == 405:
+            # HTTP 405 - Method Not Allowed, обычно означает неправильный URL или метод
+            error_detail = f"Ошибка конфигурации University API: неправильный endpoint (HTTP 405). Проверьте конфигурацию endpoints в БД."
+            logger.error(f"HTTP 405 при логине. URL: {e.request.url}, Method: {e.request.method}")
+        elif status_code == 503:
+            error_detail = "University API недоступен"
+        elif status_code == 404:
+            error_detail = f"Endpoint не найден (HTTP 404). Проверьте конфигурацию University API."
+        else:
+            error_detail = f"Ошибка University API: HTTP {status_code}"
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный email или пароль"
+            detail=error_detail
         )
     except httpx.RequestError as e:
         raise HTTPException(

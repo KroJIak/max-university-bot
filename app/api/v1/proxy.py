@@ -715,7 +715,7 @@ async def get_teacher_info(
     "/students/{user_id}/schedule",
     response_model=ScheduleResponse,
     summary="Получить расписание студента",
-    description="Получает расписание занятий студента на текущую или следующую неделю. Вызывает University API для получения расписания.",
+    description="Получает расписание занятий студента за указанный период. Вызывает University API для получения расписания.",
     response_description="Расписание занятий студента",
     responses={
         200: {"description": "Расписание успешно получено"},
@@ -726,69 +726,87 @@ async def get_teacher_info(
 )
 async def get_student_schedule(
     user_id: int,
-    week: int = 1,
+    date_range: str,
     db: Session = Depends(get_db)
 ):
     """Получить расписание для пользователя
     
-    Получает расписание занятий студента на текущую или следующую неделю.
+    Получает расписание занятий студента за указанный период.
     Вызывает University API для получения расписания.
-    Передает student_email и week в University API, который сам получает cookies из своей БД и парсит данные.
+    Передает student_email и date_range в University API, который сам получает cookies из своей БД и парсит данные.
     
     **Параметры:**
     - `user_id`: ID пользователя в системе MAX (Telegram user_id)
-    - `week`: Номер недели (1 = текущая неделя, 2 = следующая неделя, по умолчанию: 1)
+    - `date_range`: Промежуток дней в формате ДД.ММ-ДД.ММ (например: 10.11-03.12 или 20.12-05.01) или один день (например: 04.11)
     
     **Примеры использования:**
     
     ```python
     import requests
     
-    # Получить расписание на текущую неделю
-    response = requests.get("http://localhost:8003/api/v1/students/123456789/schedule?week=1")
+    # Получить расписание за период с 10 ноября по 3 декабря
+    response = requests.get("http://localhost:8003/api/v1/students/123456789/schedule?date_range=10.11-03.12")
     
-    # Получить расписание на следующую неделю
-    response = requests.get("http://localhost:8003/api/v1/students/123456789/schedule?week=2")
+    # Получить расписание за период с переходом на новый год
+    response = requests.get("http://localhost:8003/api/v1/students/123456789/schedule?date_range=20.12-05.01")
     ```
     """
+    logger.info(f"[SCHEDULE] Начало получения расписания для user_id={user_id}, date_range={date_range}")
+    
     credentials_repo = StudentCredentialsRepository(db)
     
     # Получаем university_id из user_id
+    logger.info(f"[SCHEDULE] Получаем university_id для user_id={user_id}")
     university_id = get_university_id_from_user(db, user_id)
+    logger.info(f"[SCHEDULE] Получен university_id={university_id}")
     
+    logger.info(f"[SCHEDULE] Получаем credentials для user_id={user_id}")
     credential = credentials_repo.get_by_user_id(user_id)
     if not credential:
+        logger.error(f"[SCHEDULE] Credentials не найдены для user_id={user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Связь не найдена. Необходимо сначала выполнить логин."
         )
+    logger.info(f"[SCHEDULE] Credentials найдены: student_email={credential.student_email}")
     
     # Проверяем конфигурацию и доступность метода для университета пользователя
+    logger.info(f"[SCHEDULE] Проверяем конфигурацию University API для university_id={university_id}")
     config = await validate_university_api_config(db, university_id, "students_schedule")
+    logger.info(f"[SCHEDULE] Конфигурация получена: base_url={config.get('base_url')}, endpoint={config.get('endpoints', {}).get('students_schedule')}")
     
-    # Вызываем University API для получения расписания (передаем student_email и week)
+    # Вызываем University API для получения расписания (передаем student_email и date_range)
+    logger.info(f"[SCHEDULE] Вызываем University API: student_email={credential.student_email}, date_range={date_range}")
     try:
         result = await call_university_api_schedule(
             student_email=credential.student_email,
-            week=week,
+            date_range=date_range,
             config=config
         )
-    except httpx.HTTPStatusError:
+        logger.info(f"[SCHEDULE] University API вернул результат: success={result.get('success')}, schedule_items={len(result.get('schedule', [])) if result.get('schedule') else 0}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"[SCHEDULE] HTTP ошибка от University API: {e.response.status_code} - {e.response.text}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Не удалось получить расписание"
         )
     except httpx.RequestError as e:
+        logger.error(f"[SCHEDULE] Ошибка подключения к University API: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Ошибка подключения к University API: {str(e)}"
         )
     
     if not result.get("success"):
+        error_msg = result.get("error", "Не удалось получить расписание")
+        logger.error(f"[SCHEDULE] University API вернул ошибку: {error_msg}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=result.get("error", "Не удалось получить расписание")
+            detail=error_msg
         )
+    
+    schedule_count = len(result.get("schedule", []))
+    logger.info(f"[SCHEDULE] Успешно получено расписание: {schedule_count} занятий")
     
     return ScheduleResponse(
         success=True,

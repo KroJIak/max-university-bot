@@ -4,12 +4,16 @@ import styles from './Profile.module.scss';
 
 type ProfileUniversitySectionProps = {
   name: string;
+  subtitle?: string;
 };
 
-export const ProfileUniversitySection: FC<ProfileUniversitySectionProps> = ({ name }) => {
+export const ProfileUniversitySection: FC<ProfileUniversitySectionProps> = ({ name, subtitle }) => {
   return (
     <section className={`${styles.card} ${styles.universityCard}`}>
-      <span className={styles.universityName}>{name}</span>
+      <div className={styles.universityText}>
+        <span className={styles.universityName}>{name}</span>
+        {subtitle ? <span className={styles.universitySubtitle}>{subtitle}</span> : null}
+      </div>
     </section>
   );
 };

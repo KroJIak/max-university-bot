@@ -162,16 +162,16 @@ class TeacherInfoResponse(BaseModel):
 class ScheduleRequest(BaseModel):
     """Запрос на получение расписания студента
     
-    Получает расписание занятий студента на текущую или следующую неделю.
+    Получает расписание занятий студента за указанный период.
     """
     student_email: EmailStr = Field(..., description="Email студента", example="student@university.ru")
-    week: int = Field(1, description="Номер недели (1 = текущая неделя, 2 = следующая неделя)", example=1)
+    date_range: str = Field(..., description="Промежуток дней в формате ДД.ММ-ДД.ММ (например: 10.11-03.12) или один день (например: 04.11)", example="10.11-03.12")
     
     class Config:
         json_schema_extra = {
             "example": {
                 "student_email": "student@university.ru",
-                "week": 1
+                "date_range": "10.11-03.12"
             }
         }
 
@@ -601,7 +601,7 @@ async def get_teacher_info(
     "/schedule",
     response_model=ScheduleResponse,
     summary="Получить расписание студента",
-    description="Получает расписание занятий студента на текущую или следующую неделю. Использует сохраненные cookies сессии из БД.",
+    description="Получает расписание занятий студента за указанный период. Использует сохраненные cookies сессии из БД.",
     response_description="Расписание занятий студента",
     responses={
         200: {"description": "Расписание успешно получено"},
@@ -615,76 +615,94 @@ async def get_schedule(
 ):
     """Получить расписание студента
     
-    Получает расписание занятий студента на текущую или следующую неделю.
+    Получает расписание занятий студента за указанный период.
     Использует сохраненные cookies сессии из БД для доступа к сайту университета.
     
     **Параметры:**
     - `student_email`: Email студента
-    - `week`: Номер недели (1 = текущая неделя, 2 = следующая неделя, по умолчанию: 1)
+    - `date_range`: Промежуток дней в формате ДД.ММ-ДД.ММ (например: 10.11-03.12) или один день (например: 04.11)
     
     **Примеры использования:**
     
     ```python
     import requests
     
-    # Получить расписание на текущую неделю
+    # Получить расписание за период с 10 ноября по 3 декабря
     response = requests.post(
         "http://localhost:8002/students/schedule",
         json={
             "student_email": "student@university.ru",
-            "week": 1
-        }
-    )
-    
-    # Получить расписание на следующую неделю
-    response = requests.post(
-        "http://localhost:8002/students/schedule",
-        json={
-            "student_email": "student@university.ru",
-            "week": 2
+            "date_range": "10.11-03.12"
         }
     )
     ```
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"[UNIVERSITY_API] Начало получения расписания: student_email={request.student_email}, date_range={request.date_range}")
+    
     scraper = UniversityScraper()
     cookies_repo = SessionCookiesRepository(db)
     
     # Получаем cookies из БД
+    logger.info(f"[UNIVERSITY_API] Получаем cookies из БД для student_email={request.student_email}")
     session_cookies = cookies_repo.get_by_email(request.student_email)
     if not session_cookies:
+        logger.error(f"[UNIVERSITY_API] Cookies не найдены для student_email={request.student_email}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Cookies не найдены. Необходимо выполнить логин."
         )
+    logger.info(f"[UNIVERSITY_API] Cookies найдены в БД")
     
     # Парсим cookies_by_domain
+    logger.info(f"[UNIVERSITY_API] Парсим cookies_by_domain")
+    lk_cookies = None  # Инициализируем как None
     try:
         cookies_by_domain = json.loads(session_cookies.cookies_by_domain)
+        logger.info(f"[UNIVERSITY_API] Cookies_by_domain распарсен, домены: {list(cookies_by_domain.keys())}")
+        # Для расписания нужны cookies от tt.chuvsu.ru
+        tt_cookies = cookies_by_domain.get("tt.chuvsu.ru")
+        if not tt_cookies:
+            logger.error(f"[UNIVERSITY_API] Cookies для tt.chuvsu.ru не найдены")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Cookies для tt.chuvsu.ru не найдены. Необходимо повторно выполнить логин."
+            )
+        logger.info(f"[UNIVERSITY_API] Cookies для tt.chuvsu.ru найдены")
+        
+        # Для получения personal_data нужны cookies от lk.chuvsu.ru
         lk_cookies = cookies_by_domain.get("lk.chuvsu.ru")
         if not lk_cookies:
-            # Пробуем использовать cookies от tt как fallback
-            lk_cookies = cookies_by_domain.get("tt.chuvsu.ru")
-            if not lk_cookies:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Cookies для lk.chuvsu.ru не найдены. Необходимо повторно выполнить логин."
-                )
-    except (json.JSONDecodeError, TypeError):
+            logger.warning(f"[UNIVERSITY_API] Cookies для lk.chuvsu.ru не найдены, будет использован fallback")
+        else:
+            logger.info(f"[UNIVERSITY_API] Cookies для lk.chuvsu.ru найдены")
+    except (json.JSONDecodeError, TypeError) as e:
+        logger.error(f"[UNIVERSITY_API] Ошибка при парсинге cookies: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Ошибка при чтении cookies из БД"
         )
     
     # Обновляем время последнего использования
+    logger.info(f"[UNIVERSITY_API] Обновляем время последнего использования cookies")
     cookies_repo.update_last_used(request.student_email)
     
-    result = scraper.get_schedule(week=request.week, cookies_json=lk_cookies)
+    logger.info(f"[UNIVERSITY_API] Вызываем scraper.get_schedule: date_range={request.date_range}")
+    result = scraper.get_schedule(date_range=request.date_range, cookies_json=tt_cookies, lk_cookies_json=lk_cookies)
+    logger.info(f"[UNIVERSITY_API] Scraper вернул результат: success={result.get('success')}, schedule_items={len(result.get('schedule', [])) if result.get('schedule') else 0}")
     
     if not result["success"]:
+        error_msg = result.get("error", "Не удалось получить расписание")
+        logger.error(f"[UNIVERSITY_API] Scraper вернул ошибку: {error_msg}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=result.get("error", "Не удалось получить расписание")
+            detail=error_msg
         )
+    
+    schedule_count = len(result.get("schedule", []))
+    logger.info(f"[UNIVERSITY_API] Успешно получено расписание: {schedule_count} занятий")
     
     return ScheduleResponse(
         success=True,

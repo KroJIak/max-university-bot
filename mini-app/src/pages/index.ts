@@ -4,3 +4,7 @@ export { ProfilePage } from './ProfilePage';
 export { SchedulePage } from './SchedulePage';
 export { NewsPage } from './NewsPage';
 export { LoginPage } from './LoginPage';
+export { PrimaryServicesPage } from './PrimaryServicesPage';
+export { PlatformsPage } from './PlatformsPage';
+export { TeachersPage } from './TeachersPage';
+export { TeacherDetailPage } from './TeacherDetailPage';

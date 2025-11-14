@@ -1,5 +1,5 @@
 import { NewsList } from '@components/NewsFeed';
-import { newsItems } from '../MainPage/data';
+import { newsItems } from '@shared/data/mainPage';
 import styles from './NewsPage.module.scss';
 
 export function NewsPage() {

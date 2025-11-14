@@ -2,10 +2,15 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
+import { resolve } from 'node:path';
 
 export default defineConfig(({ mode }) => {
   const projectRoot = fileURLToPath(new URL('.', import.meta.url));
+  const rootEnv = loadEnv(mode, resolve(projectRoot, '..'), '');
   const env = loadEnv(mode, projectRoot, '');
+  
+  // Используем MAX_API_DOMAIN_URL из корневого .env, если VITE_API_BASE_URL не задан
+  const apiBaseUrl = env.VITE_API_BASE_URL || rootEnv.MAX_API_DOMAIN_URL || '';
 
   const cloudpubUrl =
     env.CLOUDPUB_URL ||
@@ -38,8 +43,56 @@ export default defineConfig(({ mode }) => {
   const allowedHosts = Array.from(allowedHostsSet);
   const isProdLikeMode = mode !== 'development';
 
+  const parseUrl = (raw?: string | null) => {
+    if (!raw) {
+      return null;
+    }
+    try {
+      return new URL(raw.includes('://') ? raw : `https://${raw}`);
+    } catch {
+      return null;
+    }
+  };
+
+  const cloudpubParsed = parseUrl(
+    cloudpubUrl ||
+      env.MINI_APP_DOMAIN_URL ||
+      env.MINI_APP_PUBLIC_URL ||
+      env.VITE_APP_ORIGIN,
+  );
+
+  const cloudpubHostname = cloudpubParsed?.hostname ?? null;
+  const cloudpubProtocol = cloudpubParsed?.protocol ?? null;
+
+  const hmrConfig =
+    env.VITE_HMR_DISABLED === 'true'
+      ? false
+      : {
+          protocol: env.VITE_HMR_PROTOCOL
+            ? env.VITE_HMR_PROTOCOL
+            : isProdLikeMode || cloudpubProtocol === 'https:'
+            ? 'wss'
+            : 'ws',
+          host:
+            env.VITE_HMR_HOST ||
+            cloudpubHostname ||
+            (isProdLikeMode ? undefined : 'localhost'),
+          port: env.VITE_HMR_PORT
+            ? Number(env.VITE_HMR_PORT)
+            : undefined,
+          clientPort:
+            env.VITE_HMR_CLIENT_PORT && env.VITE_HMR_CLIENT_PORT.length > 0
+              ? Number(env.VITE_HMR_CLIENT_PORT)
+              : (isProdLikeMode || cloudpubProtocol === 'https:')
+              ? 443
+              : undefined,
+        };
+
   return {
     plugins: [react()],
+    define: {
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiBaseUrl),
+    },
     resolve: {
       alias: {
         '@components': fileURLToPath(new URL('./src/components', import.meta.url)),
@@ -58,11 +111,7 @@ export default defineConfig(({ mode }) => {
         : {
             allowedHosts: true,
           }),
-      hmr: {
-        protocol: 'ws',
-        host: env.VITE_HMR_HOST || undefined,
-        port: env.VITE_HMR_PORT ? Number(env.VITE_HMR_PORT) : undefined,
-      },
+      hmr: hmrConfig,
     },
   };
 });

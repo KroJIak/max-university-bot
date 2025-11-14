@@ -1,6 +1,6 @@
-import type { ScheduleItem, SubgroupSelection } from '../types/schedule';
+import type { LessonAudience, ScheduleItem, SubgroupSelection } from '../types/schedule';
 
-const matchMap: Record<SubgroupSelection, 'all' | 'subgroup1' | 'subgroup2' | null> = {
+const matchMap: Record<SubgroupSelection, LessonAudience | null> = {
   full: null,
   subgroup1: 'subgroup1',
   subgroup2: 'subgroup2',
@@ -17,7 +17,7 @@ export function filterLessonsBySubgroup(
   }
 
   return lessons.filter((lesson) => {
-    if (!lesson.audience || lesson.audience === 'all') {
+    if (!lesson.audience || lesson.audience === 'full') {
       return true;
     }
 

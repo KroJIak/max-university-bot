@@ -5,7 +5,7 @@ import { filterLessonsBySubgroup } from '@shared/utils/schedule';
 import type { ScheduleItem } from '@shared/types/schedule';
 import { MonthCalendar, ScheduleLessons } from '@components/ScheduleDetail';
 import type { CalendarCell } from '@components/ScheduleDetail/types';
-import { scheduleByDay } from '../MainPage/data';
+import { scheduleByDay } from '@shared/data/mainPage';
 import styles from './SchedulePage.module.scss';
 
 type MonthMetadata = {

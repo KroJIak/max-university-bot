@@ -9,11 +9,13 @@ type ScheduleCardProps = {
 const typeLabel: Record<ScheduleItem['type'], string> = {
   lecture: 'ЛК',
   practice: 'ПР',
+  lab: 'ЛБ',
 };
 
 const typeColor: Record<ScheduleItem['type'], string> = {
   lecture: palette.accentLecture,
   practice: palette.accentPractice,
+  lab: palette.accentLab,
 };
 
 export function ScheduleCard({ item }: ScheduleCardProps) {

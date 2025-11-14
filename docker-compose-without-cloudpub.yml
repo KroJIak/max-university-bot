@@ -90,6 +90,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  ghost-api:
+    build:
+      context: ./ghost-app
+      dockerfile: Dockerfile
+    container_name: maxbot_ghost_api
+    environment:
+      - GHOST_API_HOST=${GHOST_API_HOST:-0.0.0.0}
+      - GHOST_API_PORT=${GHOST_API_PORT:-8004}
+      - GHOST_API_DOMAIN_URL=${GHOST_API_DOMAIN_URL:-}
+      - GHOST_DATABASE_URL=${GHOST_DATABASE_URL:-postgresql://maxbot:maxbot123@postgres:5432/ghost_db}
+    ports:
+      - "${GHOST_API_PORT:-8004}:8004"
+    volumes:
+      - ./ghost-app:/app
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
   mini-app:
     build:
       context: ./mini-app

@@ -24,6 +24,7 @@
   --color-accent-success-strong: #58cc8a;
   --color-accent-lecture: #4ad871;
   --color-accent-practice: #ff9f3a;
+  --color-accent-lab: #6a9bff;
 
   /* === Gradients === */
   --gradient-primary: linear-gradient(180deg, rgba(99, 118, 189, 0.9) 0%, rgba(70, 84, 143, 0.78) 100%);

@@ -72,7 +72,11 @@ const contactRows = [
   { id: 'birthday', label: 'Дата рождения', value: '14 мая 2003' },
 ];
 
-export function ProfilePage() {
+type ProfilePageProps = {
+  onLogout?: () => void;
+};
+
+export function ProfilePage({ onLogout }: ProfilePageProps) {
   return (
     <div className={styles.page}>
       <ProfileUniversitySection name="Макс Университет" />
@@ -85,7 +89,7 @@ export function ProfilePage() {
       <ProfileInfoSection rows={contactRows} />
       <ProfileStatsSection cards={statCards} />
       <ProfileSettingsSection groups={settingsGroups} />
-      <ProfileLogoutButton />
+      <ProfileLogoutButton onClick={onLogout} />
     </div>
   );
 }

@@ -13,6 +13,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: var(--action-button-size);
+  gap: 12px;
 }
 
 .title {
@@ -23,9 +25,9 @@
 }
 
 .moreButton {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
+  width: var(--action-button-size);
+  height: var(--action-button-size);
+  border-radius: var(--action-button-radius);
   border: none;
   background: var(--color-surface-soft);
   display: flex;
@@ -43,15 +45,45 @@
 }
 
 .moreIcon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
+}
+
+.headerPlaceholder {
+  display: block;
+  width: var(--action-button-size);
+  height: var(--action-button-size);
+  border-radius: var(--action-button-radius);
 }
 
 .list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 3vw, 16px);
+}
+
+.row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(10px, 3vw, 14px);
   align-items: start;
+}
+
+.gridList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 3vw, 18px);
+}
+
+.gridList .item {
+  width: 100%;
+}
+
+.gridList .card {
+  width: 100%;
+}
+
+.gridItemWide {
+  grid-column: span 2;
 }
 
 .item {

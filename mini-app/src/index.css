@@ -15,6 +15,23 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+:root {
+  --page-gap: clamp(18px, 4vw, 24px);
+  --page-padding-inline: clamp(16px, 5vw, 22px);
+  --page-padding-bottom: clamp(28px, 7vw, 42px);
+  --action-button-size: 42px;
+  --action-button-radius: var(--radius-md);
+}
+
+@media (max-width: 420px) {
+  :root {
+    --page-gap: clamp(16px, 5vw, 22px);
+    --page-padding-inline: clamp(14px, 6vw, 20px);
+    --page-padding-bottom: clamp(24px, 10vw, 36px);
+    --action-button-size: 38px;
+  }
+}
+
 #root {
   min-height: 100vh;
 }

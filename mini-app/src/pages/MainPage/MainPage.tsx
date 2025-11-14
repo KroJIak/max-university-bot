@@ -1,6 +1,6 @@
 import { NewsSection } from '@components/NewsSection';
 import { ScheduleSection } from '@components/ScheduleSection';
-import { dayTabs, scheduleByDay } from './data';
+import { dayTabs, scheduleByDay } from '@shared/data/mainPage';
 import styles from './MainPage.module.scss';
 
 type MainPageProps = {

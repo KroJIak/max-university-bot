@@ -10,6 +10,7 @@ export const palette = {
   accentSuccessStrong: 'var(--color-accent-success-strong)',
   accentLecture: 'var(--color-accent-lecture)',
   accentPractice: 'var(--color-accent-practice)',
+  accentLab: 'var(--color-accent-lab)',
   gradientPrimary: 'var(--gradient-primary)',
   gradientAvatar: 'var(--gradient-avatar)',
 } as const;

@@ -1,0 +1,8 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-gap);
+  padding: 0 var(--page-padding-inline) var(--page-padding-bottom);
+}
+
+

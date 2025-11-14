@@ -1,6 +1,6 @@
-export type ScheduleType = 'lecture' | 'practice';
+export type ScheduleType = 'lecture' | 'practice' | 'lab';
 
-export type LessonAudience = 'all' | 'subgroup1' | 'subgroup2';
+export type LessonAudience = 'full' | 'subgroup1' | 'subgroup2';
 
 export type SubgroupSelection = 'full' | 'subgroup1' | 'subgroup2';
 

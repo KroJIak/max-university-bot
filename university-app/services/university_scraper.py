@@ -60,8 +60,8 @@ class UniversityScraper(BaseScraper):
         return self.teachers.get_teacher_info(teacher_id, cookies_json)
     
     # Делегируем методы расписания
-    def get_schedule(self, week: int = 1, cookies_json=None):
-        return self.schedule.get_schedule(week, cookies_json)
+    def get_schedule(self, date_range: str, cookies_json=None, lk_cookies_json=None):
+        return self.schedule.get_schedule(date_range, cookies_json, lk_cookies_json)
     
     # Делегируем методы контактов
     def get_contacts(self, cookies_json=None):

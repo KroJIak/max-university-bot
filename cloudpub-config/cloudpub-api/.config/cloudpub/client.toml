@@ -1,0 +1,16 @@
+agent_id = "f79b5b3c-469a-4038-b56e-a4cd360fdd62"
+server = "https://cloudpub.ru/"
+token = "dpiaF-CPEc715LNkLUl8Ga5EsfqLIP6Zt8_rXYxbmDE"
+heartbeat_timeout = 40
+minimize_to_tray_on_close = true
+minimize_to_tray_on_start = false
+
+[transport]
+type = "websocket"
+
+[transport.tcp]
+
+[transport.tls]
+
+[transport.websocket]
+tls = true

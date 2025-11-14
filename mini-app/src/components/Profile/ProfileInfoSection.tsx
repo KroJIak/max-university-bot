@@ -22,10 +22,10 @@ export const ProfileInfoSection: FC<ProfileInfoSectionProps> = ({ rows }) => {
             className={styles.row}
             data-last={index === rows.length - 1 ? 'true' : undefined}
           >
-            <span className={styles.label}>{row.label}</span>
-            <span className={styles.value}>{row.value}</span>
-          </div>
-        ))}
+          <span className={styles.label}>{row.label}</span>
+          <span className={styles.value}>{row.value}</span>
+        </div>
+      ))}
       </div>
     </section>
   );

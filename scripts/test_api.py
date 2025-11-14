@@ -10,7 +10,7 @@ import sys
 import argparse
 import time
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Colors:
@@ -592,20 +592,31 @@ class APITester:
             return True
         
         try:
-            # Тестируем текущую неделю (week=1)
+            # Вычисляем текущую дату для тестового диапазона
+            today = datetime.now()
+            
+            # Создаем диапазон: текущая неделя (7 дней вперед)
+            start_date = today
+            end_date = today + timedelta(days=7)
+            
+            # Форматируем в ДД.ММ-ДД.ММ
+            date_range = f"{start_date.strftime('%d.%m')}-{end_date.strftime('%d.%m')}"
+            
+            self.print_info(f"Testing with date_range: {date_range}")
+            
             response = requests.get(
                 f"{self.api_base}/students/{self.created_student_user_id}/schedule",
-                params={"week": 1}
+                params={"date_range": date_range}
             )
             if response.status_code == 200:
                 result = response.json()
-                if result.get("success") and result.get("schedule"):
+                if result.get("success") and result.get("schedule") is not None:
                     schedule = result.get("schedule", [])
                     self.print_success(f"Schedule retrieved. Found {len(schedule)} lessons")
-                    # Показываем первые 3 занятия
+                    # Показываем первые 5 занятий
                     if schedule:
-                        print(f"   First {min(3, len(schedule))} lessons:")
-                        for lesson in schedule[:3]:
+                        print(f"   First {min(5, len(schedule))} lessons:")
+                        for lesson in schedule[:5]:
                             print(f"     {lesson.get('date')} {lesson.get('time_start')}-{lesson.get('time_end')}: {lesson.get('subject')} ({lesson.get('type')})")
                             if lesson.get('teacher'):
                                 print(f"       Teacher: {lesson.get('teacher')}")
@@ -613,11 +624,13 @@ class APITester:
                                 print(f"       Room: {lesson.get('room')}")
                             if lesson.get('additional_info'):
                                 print(f"       Additional: {lesson.get('additional_info')}")
-                        if len(schedule) > 3:
-                            print(f"     ... and {len(schedule) - 3} more")
+                        if len(schedule) > 5:
+                            print(f"     ... and {len(schedule) - 5} more")
+                    else:
+                        self.print_info("Schedule is empty (no lessons in this date range)")
                     return True
                 else:
-                    self.print_error("Schedule retrieved but list is empty")
+                    self.print_error("Schedule retrieved but success is False or schedule is None")
                     self.print_response(response)
                     return False
             elif response.status_code == 404:
@@ -756,7 +769,15 @@ class APITester:
                 self.print_success("University config retrieved")
                 config = response.json()
                 print(f"   API Base URL: {config.get('university_api_base_url', 'N/A')}")
-                print(f"   Endpoints: {len(config.get('endpoints', {}))} configured")
+                endpoints = config.get('endpoints', {})
+                print(f"   Endpoints: {len(endpoints)} configured")
+                if endpoints:
+                    print(f"   Endpoints details:")
+                    for key, value in endpoints.items():
+                        print(f"     {key}: {value}")
+                else:
+                    print(f"   No endpoints configured")
+                self.print_response(response)
                 return True
             elif response.status_code == 404:
                 self.print_info("Config not found (OK - not configured yet)")

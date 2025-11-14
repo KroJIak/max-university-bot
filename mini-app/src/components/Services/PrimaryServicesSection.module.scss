@@ -13,6 +13,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: var(--action-button-size);
+  gap: 12px;
 }
 
 .title {
@@ -23,9 +25,9 @@
 }
 
 .moreButton {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md);
+  width: var(--action-button-size);
+  height: var(--action-button-size);
+  border-radius: var(--action-button-radius);
   border: none;
   background: var(--color-surface-soft);
   cursor: pointer;
@@ -47,6 +49,13 @@
   height: 24px;
 }
 
+.headerPlaceholder {
+  display: block;
+  width: var(--action-button-size);
+  height: var(--action-button-size);
+  border-radius: var(--action-button-radius);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -61,8 +70,8 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 16px;
-  min-height: 150px;
-  height: 150px;
+  min-height: 125px;
+  height: 125px;
   border: none;
   color: var(--color-text-primary);
   text-align: left;
@@ -92,6 +101,10 @@
   font-size: clamp(40px, 8vw, 56px);
   line-height: 1;
   align-self: flex-end;
+}
+
+.cardWide {
+  grid-column: span 2;
 }
 
 @media (max-width: 360px) {

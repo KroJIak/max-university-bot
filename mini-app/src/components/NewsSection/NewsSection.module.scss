@@ -22,9 +22,9 @@
 }
 
 .moreButton {
-  width: 40px;
-  height: 40px;
-  border-radius: 16px;
+  width: var(--action-button-size);
+  height: var(--action-button-size);
+  border-radius: var(--action-button-radius);
   border: none;
   background: var(--color-surface-soft);
   cursor: pointer;

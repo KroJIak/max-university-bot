@@ -90,6 +90,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  ghost-api:
+    build:
+      context: ./ghost-app
+      dockerfile: Dockerfile
+    container_name: maxbot_ghost_api
+    environment:
+      - GHOST_API_HOST=${GHOST_API_HOST:-0.0.0.0}
+      - GHOST_API_PORT=${GHOST_API_PORT:-8004}
+      - GHOST_API_DOMAIN_URL=${GHOST_API_DOMAIN_URL:-}
+      - GHOST_DATABASE_URL=${GHOST_DATABASE_URL:-postgresql://maxbot:maxbot123@postgres:5432/ghost_db}
+    ports:
+      - "${GHOST_API_PORT:-8004}:8004"
+    volumes:
+      - ./ghost-app:/app
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
   mini-app:
     build:
       context: ./mini-app
@@ -105,61 +126,103 @@ services:
       - .env
     restart: unless-stopped
 
+  cloudpub-init:
+    image: alpine:latest
+    container_name: maxbot-cloudpub-init
+    volumes:
+      - ./cloudpub-config:/cloudpub-config
+    command: sh -c "mkdir -p /cloudpub-config/cloudpub-api /cloudpub-config/cloudpub-admin-panel /cloudpub-config/cloudpub-university-api /cloudpub-config/cloudpub-mini-app /cloudpub-config/cloudpub-ghost-api && chmod -R 777 /cloudpub-config"
+    restart: "no"
+
   cloudpub-api:
     image: cloudpub/cloudpub:latest-arm64
     restart: unless-stopped
+    network_mode: host
     env_file:
       - .env
     environment:
       - TOKEN=${CLOUDPUB_TOKEN}
-      - HTTP=api:8003
+      - HTTP=localhost:8003
     command: run
     depends_on:
-      - api
+      api:
+        condition: service_started
+      cloudpub-init:
+        condition: service_completed_successfully
     volumes:
-      - ./cloudpub-config:/home/cloudpub
+      - ./cloudpub-config/cloudpub-api:/home/cloudpub
 
   cloudpub-admin-panel:
     image: cloudpub/cloudpub:latest-arm64
     restart: unless-stopped
+    network_mode: host
     env_file:
       - .env
     environment:
       - TOKEN=${CLOUDPUB_TOKEN}
-      - HTTP=admin-panel:8080
+      - HTTP=localhost:8081
     command: run
     depends_on:
-      - admin-panel
+      admin-panel:
+        condition: service_started
+      cloudpub-init:
+        condition: service_completed_successfully
     volumes:
-      - ./cloudpub-config:/home/cloudpub
+      - ./cloudpub-config/cloudpub-admin-panel:/home/cloudpub
 
   cloudpub-university-api:
     image: cloudpub/cloudpub:latest-arm64
     restart: unless-stopped
+    network_mode: host
     env_file:
       - .env
     environment:
       - TOKEN=${CLOUDPUB_TOKEN}
-      - HTTP=university-api:8001
+      - HTTP=localhost:8001
     command: run
     depends_on:
-      - university-api
+      university-api:
+        condition: service_started
+      cloudpub-init:
+        condition: service_completed_successfully
     volumes:
-      - ./cloudpub-config:/home/cloudpub
+      - ./cloudpub-config/cloudpub-university-api:/home/cloudpub
 
   cloudpub-mini-app:
     image: cloudpub/cloudpub:latest-arm64
     restart: unless-stopped
+    network_mode: host
     env_file:
       - .env
     environment:
       - TOKEN=${CLOUDPUB_TOKEN}
-      - HTTP=mini-app:8002
+      - HTTP=localhost:8002
     command: run
     depends_on:
-      - mini-app
+      mini-app:
+        condition: service_started
+      cloudpub-init:
+        condition: service_completed_successfully
     volumes:
-      - ./cloudpub-config:/home/cloudpub
+      - ./cloudpub-config/cloudpub-mini-app:/home/cloudpub
+
+  cloudpub-ghost-api:
+    image: cloudpub/cloudpub:latest-arm64
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      - TOKEN=${CLOUDPUB_TOKEN}
+      - HTTP=localhost:8004
+    command: run
+    depends_on:
+      ghost-api:
+        condition: service_started
+      cloudpub-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./cloudpub-config/cloudpub-ghost-api:/home/cloudpub
 
 volumes:
   postgres_data:

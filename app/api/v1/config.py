@@ -71,63 +71,36 @@ class UniversityConfigResponse(BaseModel):
     "/config/university/{university_id}",
     response_model=UniversityConfigResponse,
     summary="Получить конфигурацию университета",
-    description="Получает конфигурацию University API для указанного университета. Требуется аутентификация через JWT токен. Можно получить конфигурацию только своего университета.",
+    description="Получает конфигурацию University API для указанного университета. Не требует аутентификации.",
     response_description="Конфигурация University API",
     responses={
         200: {"description": "Конфигурация успешно получена"},
-        401: {"description": "Требуется аутентификация"},
-        403: {"description": "Доступ запрещен (можно получить только свою конфигурацию)"},
         404: {"description": "Конфигурация не найдена"}
     }
 )
 async def get_university_config(
     university_id: int, 
-    db: Session = Depends(get_db),
-    current_university_id: int = Depends(get_current_university_id)
+    db: Session = Depends(get_db)
 ):
     """Получить конфигурацию University API для конкретного университета
     
     Получает конфигурацию University API для указанного университета.
-    Требуется аутентификация через JWT токен (полученный через `/universities/login`).
-    Можно получить конфигурацию только своего университета.
+    Не требует аутентификации.
     
     **Параметры:**
     - `university_id`: ID университета
-    
-    **Заголовки:**
-    - `Authorization: Bearer <token>` - JWT токен университета
     
     **Примеры использования:**
     
     ```python
     import requests
     
-    # Сначала аутентифицируемся
-    login_response = requests.post(
-        "http://localhost:8003/api/v1/universities/login",
-        json={
-            "university_id": 1,
-            "login": "admin",
-            "password": "admin"
-        }
-    )
-    token = login_response.json()["access_token"]
-    
     # Получаем конфигурацию
-    headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(
-        "http://localhost:8003/api/v1/config/university/1",
-        headers=headers
+        "http://localhost:8003/api/v1/config/university/1"
     )
     ```
     """
-    # Проверяем, что пользователь аутентифицирован для этого университета
-    if current_university_id != university_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Доступ запрещен: вы не можете получить конфигурацию другого университета"
-        )
-    
     repo = UniversityConfigRepository(db)
     config = repo.get(university_id)
     
@@ -237,63 +210,36 @@ async def update_university_config(
     "/config/university/{university_id}/endpoints",
     response_model=Dict[str, str],
     summary="Получить endpoints университета",
-    description="Получает только endpoints из конфигурации University API для указанного университета. Требуется аутентификация через JWT токен. Можно получить endpoints только своего университета.",
+    description="Получает только endpoints из конфигурации University API для указанного университета. Не требует аутентификации.",
     response_description="Словарь endpoints: {\"students_login\": \"/students/login\", ...}",
     responses={
         200: {"description": "Endpoints успешно получены"},
-        401: {"description": "Требуется аутентификация"},
-        403: {"description": "Доступ запрещен (можно получить только свои endpoints)"},
         404: {"description": "Конфигурация не найдена"}
     }
 )
 async def get_university_endpoints(
     university_id: int, 
-    db: Session = Depends(get_db),
-    current_university_id: int = Depends(get_current_university_id)
+    db: Session = Depends(get_db)
 ):
     """Получить только endpoints из конфигурации
     
     Получает только endpoints из конфигурации University API для указанного университета.
-    Требуется аутентификация через JWT токен (полученный через `/universities/login`).
-    Можно получить endpoints только своего университета.
+    Не требует аутентификации.
     
     **Параметры:**
     - `university_id`: ID университета
-    
-    **Заголовки:**
-    - `Authorization: Bearer <token>` - JWT токен университета
     
     **Примеры использования:**
     
     ```python
     import requests
     
-    # Сначала аутентифицируемся
-    login_response = requests.post(
-        "http://localhost:8003/api/v1/universities/login",
-        json={
-            "university_id": 1,
-            "login": "admin",
-            "password": "admin"
-        }
-    )
-    token = login_response.json()["access_token"]
-    
     # Получаем endpoints
-    headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(
-        "http://localhost:8003/api/v1/config/university/1/endpoints",
-        headers=headers
+        "http://localhost:8003/api/v1/config/university/1/endpoints"
     )
     ```
     """
-    # Проверяем, что пользователь аутентифицирован для этого университета
-    if current_university_id != university_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Доступ запрещен: вы не можете получить endpoints другого университета"
-        )
-    
     repo = UniversityConfigRepository(db)
     config = repo.get(university_id)
     
@@ -307,31 +253,24 @@ async def get_university_endpoints(
     "/config/university/{university_id}/endpoints/status",
     response_model=Dict[str, bool],
     summary="Получить статус endpoints университета",
-    description="Получает статус endpoints (включен/выключен) для указанного университета. Требуется аутентификация через JWT токен. Можно получить статус только своих endpoints.",
+    description="Получает статус endpoints (включен/выключен) для указанного университета. Не требует аутентификации.",
     response_description="Словарь со статусом endpoints: {\"students_login\": true, \"students_personal_data\": false, ...}",
     responses={
         200: {"description": "Статус endpoints успешно получен"},
-        401: {"description": "Требуется аутентификация"},
-        403: {"description": "Доступ запрещен (можно получить только статус своих endpoints)"},
         404: {"description": "Университет не найден"}
     }
 )
 async def get_university_endpoints_status(
     university_id: int, 
-    db: Session = Depends(get_db),
-    current_university_id: int = Depends(get_current_university_id)
+    db: Session = Depends(get_db)
 ):
     """Получить статус endpoints (включен/выключен)
     
     Получает статус endpoints (включен/выключен) для указанного университета.
-    Требуется аутентификация через JWT токен (полученный через `/universities/login`).
-    Можно получить статус только своих endpoints.
+    Не требует аутентификации.
     
     **Параметры:**
     - `university_id`: ID университета
-    
-    **Заголовки:**
-    - `Authorization: Bearer <token>` - JWT токен университета
     
     **Возвращает:**
     - `Dict[str, bool]`: Словарь с ключами endpoint и значениями true/false
@@ -356,32 +295,12 @@ async def get_university_endpoints_status(
     ```python
     import requests
     
-    # Сначала аутентифицируемся
-    login_response = requests.post(
-        "http://localhost:8003/api/v1/universities/login",
-        json={
-            "university_id": 1,
-            "login": "admin",
-            "password": "admin"
-        }
-    )
-    token = login_response.json()["access_token"]
-    
     # Получаем статус endpoints
-    headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(
-        "http://localhost:8003/api/v1/config/university/1/endpoints/status",
-        headers=headers
+        "http://localhost:8003/api/v1/config/university/1/endpoints/status"
     )
     ```
     """
-    # Проверяем, что пользователь аутентифицирован для этого университета
-    if current_university_id != university_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Доступ запрещен: вы не можете получить статус endpoints другого университета"
-        )
-    
     university_repo = UniversityRepository(db)
     config_repo = UniversityConfigRepository(db)
     
