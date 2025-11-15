@@ -4,7 +4,7 @@ import re
 import logging
 import json
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from .base import BaseScraper
@@ -19,6 +19,56 @@ FACULTIES_GROUPS_FILE = os.path.join(os.path.dirname(__file__), 'faculties_group
 
 # Путь к файлу с тестовым расписанием
 TEST_SCHEDULE_FILE = os.path.join(os.path.dirname(__file__), 'test_schedule.json')
+
+
+def _convert_type_to_schedule_type(type_text: Optional[str]) -> str:
+    """Преобразовать тип занятия в формат ScheduleType (lecture, practice, lab)"""
+    if not type_text:
+        return 'lecture'  # По умолчанию
+    
+    type_lower = type_text.lower()
+    if 'лекц' in type_lower or type_lower == 'лк':
+        return 'lecture'
+    elif 'практик' in type_lower or type_lower == 'пр':
+        return 'practice'
+    elif 'лабораторн' in type_lower or type_lower == 'лб':
+        return 'lab'
+    else:
+        return 'lecture'  # По умолчанию
+
+
+def _detect_subgroup_from_text(text: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    Определить подгруппу из текста
+    
+    Returns:
+        tuple: (note, audience, undergruop)
+        - note: "Общая пара" или "Подгруппа 1", "Подгруппа 2"
+        - audience: 'full', 'subgroup1', 'subgroup2'
+        - undergruop: "Подгруппа 1", "Подгруппа 2" или None
+    """
+    text_lower = text.lower()
+    
+    # Ищем упоминания подгрупп
+    if re.search(r'подгруппа\s*1', text_lower):
+        return ("Подгруппа 1", "subgroup1", "Подгруппа 1")
+    elif re.search(r'подгруппа\s*2', text_lower):
+        return ("Подгруппа 2", "subgroup2", "Подгруппа 2")
+    elif re.search(r'1\s*подгрупп', text_lower):
+        return ("Подгруппа 1", "subgroup1", "Подгруппа 1")
+    elif re.search(r'2\s*подгрупп', text_lower):
+        return ("Подгруппа 2", "subgroup2", "Подгруппа 2")
+    else:
+        return ("Общая пара", "full", None)
+
+
+def _generate_lesson_id(subject: str, date: str, time_start: str, index: int = 0) -> str:
+    """Сгенерировать уникальный ID для занятия"""
+    # Создаем ID на основе предмета, даты и времени
+    subject_slug = re.sub(r'[^a-zа-я0-9]', '-', subject.lower())[:20]
+    date_slug = date.replace('.', '-')
+    time_slug = time_start.replace(':', '-') if time_start else ''
+    return f"{subject_slug}-{date_slug}-{time_slug}-{index}"
 
 
 class ScheduleScraper(BaseScraper):
@@ -846,20 +896,36 @@ class ScheduleScraper(BaseScraper):
                             
                             # Вычисляем дату для этого дня недели
                             lesson_date = monday_date + timedelta(days=current_day)
+                            date_str = lesson_date.strftime("%d.%m.%Y")
+                            time_start = current_pair_time[0] if current_pair_time else None
+                            time_end = current_pair_time[1] if current_pair_time else None
                             
-                            # Добавляем в расписание
+                            # Определяем подгруппу из текста
+                            note, audience, undergruop = _detect_subgroup_from_text(subject_text)
+                            
+                            # Преобразуем тип занятия
+                            schedule_type = _convert_type_to_schedule_type(type_text)
+                            
+                            # Генерируем ID
+                            lesson_id = _generate_lesson_id(subject_name or '', date_str, time_start or '', subjects_found)
+                            
+                            # Добавляем в расписание в новом формате
                             lesson = {
-                                "date": lesson_date.strftime("%d.%m.%Y"),
-                                "time_start": current_pair_time[0] if current_pair_time else None,
-                                "time_end": current_pair_time[1] if current_pair_time else None,
-                                "subject": subject_name,
-                                "type": type_text,
+                                "id": lesson_id,
+                                "start": time_start or "",
+                                "end": time_end or "",
+                                "title": subject_name or "",
+                                "type": schedule_type,
+                                "room": room or "",
+                                "note": note,
+                                "audience": audience,
+                                "date": date_str,
                                 "teacher": teacher,
-                                "room": room,
-                                "additional_info": additional_info if additional_info else None
+                                "additional_info": additional_info if additional_info else None,
+                                "undergruop": undergruop
                             }
                             schedule.append(lesson)
-                            logger.info(f"[SCHEDULE_SCRAPER] ✓ Добавлен предмет: '{subject_name}' на {lesson['date']} {lesson['time_start']}, день={current_day}, пара={current_pair_number}")
+                            logger.info(f"[SCHEDULE_SCRAPER] ✓ Добавлен предмет: '{subject_name}' на {lesson['date']} {lesson['start']}, день={current_day}, пара={current_pair_number}")
                     else:
                         # Строка не является парой (even/odd без trfd), но не прошла проверку на пару
                         logger.debug(f"[SCHEDULE_SCRAPER] Строка с классом {row_class} не распознана как пара (ячеек: {len(cells)})")
@@ -953,7 +1019,7 @@ class ScheduleScraper(BaseScraper):
                             # Удаляем старую пару из расписания
                             schedule[:] = [lesson for lesson in schedule 
                                          if not (lesson.get('date') == old_date_str and 
-                                                self._get_pair_number(lesson.get('time_start')) == old_pair)]
+                                                self._get_pair_number(lesson.get('start')) == old_pair)]
                             
                             # Парсим новый предмет из блока
                             lesson_data = self._parse_lesson_from_change(change_td, new_date_str, change.get('time_start'), change.get('time_end'))
@@ -992,14 +1058,16 @@ class ScheduleScraper(BaseScraper):
                                     # Удаляем старую пару
                                     schedule[:] = [lesson for lesson in schedule 
                                                  if not (lesson.get('date') == old_date_str and 
-                                                        lesson.get('subject') == main_lesson.get('subject') and
-                                                        self._get_pair_number(lesson.get('time_start')) == change.get('pair_number'))]
+                                                        lesson.get('title') == main_lesson.get('title') and
+                                                        self._get_pair_number(lesson.get('start')) == change.get('pair_number'))]
                                     
                                     # Добавляем новую пару
                                     new_lesson = main_lesson.copy()
                                     new_lesson['date'] = new_date_str
-                                    new_lesson['time_start'] = new_time[0] if new_time else None
-                                    new_lesson['time_end'] = new_time[1] if new_time else None
+                                    new_lesson['start'] = new_time[0] if new_time else ""
+                                    new_lesson['end'] = new_time[1] if new_time else ""
+                                    # Обновляем ID для новой даты
+                                    new_lesson['id'] = _generate_lesson_id(new_lesson.get('title', ''), new_date_str, new_lesson['start'], 0)
                                     schedule.append(new_lesson)
                                     logger.debug(f"Обработан перенос типа 2: {old_date_str} -> {new_date_str} ({new_pair} пара)")
                 
@@ -1028,8 +1096,8 @@ class ScheduleScraper(BaseScraper):
                                     # Обновляем преподавателя в расписании
                                     for lesson in schedule:
                                         if (lesson.get('date') == change_date_str and 
-                                            lesson.get('subject') == main_lesson.get('subject') and
-                                            self._get_pair_number(lesson.get('time_start')) == change.get('pair_number')):
+                                            lesson.get('title') == main_lesson.get('title') and
+                                            self._get_pair_number(lesson.get('start')) == change.get('pair_number')):
                                             lesson['teacher'] = new_teacher
                                             logger.debug(f"Обработана замена преподавателя типа 3: {change_date_str} -> {new_teacher}")
                                             break
@@ -1083,15 +1151,28 @@ class ScheduleScraper(BaseScraper):
                     if lines:
                         teacher = lines[0]
             
+            # Определяем подгруппу из текста
+            note, audience, undergruop = _detect_subgroup_from_text(text)
+            
+            # Преобразуем тип занятия
+            schedule_type = _convert_type_to_schedule_type(type_text)
+            
+            # Генерируем ID
+            lesson_id = _generate_lesson_id(subject_name or '', date_str, time_start or '', 0)
+            
             return {
+                "id": lesson_id,
+                "start": time_start or "",
+                "end": time_end or "",
+                "title": subject_name or "",
+                "type": schedule_type,
+                "room": room or "",
+                "note": note,
+                "audience": audience,
                 "date": date_str,
-                "time_start": time_start,
-                "time_end": time_end,
-                "subject": subject_name,
-                "type": type_text,
                 "teacher": teacher,
-                "room": room,
-                "additional_info": None
+                "additional_info": None,
+                "undergruop": undergruop
             }
         except Exception as e:
             logger.error(f"Ошибка при парсинге предмета из изменения: {e}")
@@ -1153,16 +1234,32 @@ class ScheduleScraper(BaseScraper):
             
             # Дата
             lesson_date = monday_date + timedelta(days=change.get('day', 0))
+            date_str = lesson_date.strftime("%d.%m.%Y")
+            time_start = change.get('time_start')
+            time_end = change.get('time_end')
+            
+            # Определяем подгруппу из текста
+            note, audience, undergruop = _detect_subgroup_from_text(text)
+            
+            # Преобразуем тип занятия
+            schedule_type = _convert_type_to_schedule_type(type_text)
+            
+            # Генерируем ID
+            lesson_id = _generate_lesson_id(subject_name or '', date_str, time_start or '', 0)
             
             return {
-                "date": lesson_date.strftime("%d.%m.%Y"),
-                "time_start": change.get('time_start'),
-                "time_end": change.get('time_end'),
-                "subject": subject_name,
-                "type": type_text,
+                "id": lesson_id,
+                "start": time_start or "",
+                "end": time_end or "",
+                "title": subject_name or "",
+                "type": schedule_type,
+                "room": room or "",
+                "note": note,
+                "audience": audience,
+                "date": date_str,
                 "teacher": teacher,
-                "room": room,
-                "additional_info": None
+                "additional_info": None,
+                "undergruop": undergruop
             }
         except Exception as e:
             logger.error(f"Ошибка при парсинге основного предмета: {e}")
@@ -1345,159 +1442,84 @@ class ScheduleScraper(BaseScraper):
         
         # Тестовое расписание на неделю
         test_schedule = []
+        lesson_index = 0
+        
+        def create_lesson(date_str: str, start: str, end: str, title: str, type_str: str, 
+                         teacher: str, room: str, note: str = "Общая пара", 
+                         audience: str = "full", undergruop: Optional[str] = None,
+                         additional_info: Optional[str] = None) -> Dict:
+            nonlocal lesson_index
+            lesson_id = _generate_lesson_id(title, date_str, start, lesson_index)
+            lesson_index += 1
+            return {
+                "id": lesson_id,
+                "start": start,
+                "end": end,
+                "title": title,
+                "type": _convert_type_to_schedule_type(type_str),
+                "room": room,
+                "note": note,
+                "audience": audience,
+                "date": date_str,
+                "teacher": teacher,
+                "additional_info": additional_info,
+                "undergruop": undergruop
+            }
         
         # Понедельник
+        monday_str = (monday + timedelta(days=0)).strftime("%d.%m.%Y")
         test_schedule.extend([
-            {
-                "date": (monday + timedelta(days=0)).strftime("%d.%m.%Y"),
-                "time_start": "8:20",
-                "time_end": "9:40",
-                "subject": "Математический анализ",
-                "type": "Лекция",
-                "teacher": "Иванов И.И.",
-                "room": "Ауд. 101",
-                "additional_info": None
-            },
-            {
-                "date": (monday + timedelta(days=0)).strftime("%d.%m.%Y"),
-                "time_start": "9:50",
-                "time_end": "11:10",
-                "subject": "Программирование",
-                "type": "Практика",
-                "teacher": "Петров П.П.",
-                "room": "Ауд. 205",
-                "additional_info": None
-            },
-            {
-                "date": (monday + timedelta(days=0)).strftime("%d.%m.%Y"),
-                "time_start": "11:20",
-                "time_end": "12:40",
-                "subject": "Физика",
-                "type": "Лекция",
-                "teacher": "Сидоров С.С.",
-                "room": "Ауд. 301",
-                "additional_info": None
-            }
+            create_lesson(monday_str, "8:20", "9:40", "Математический анализ", "Лекция", 
+                         "Иванов И.И.", "Ауд. 101"),
+            create_lesson(monday_str, "9:50", "11:10", "Программирование", "Практика", 
+                         "Петров П.П.", "Ауд. 205"),
+            create_lesson(monday_str, "11:20", "12:40", "Физика", "Лекция", 
+                         "Сидоров С.С.", "Ауд. 301")
         ])
         
         # Вторник
+        tuesday_str = (monday + timedelta(days=1)).strftime("%d.%m.%Y")
         test_schedule.extend([
-            {
-                "date": (monday + timedelta(days=1)).strftime("%d.%m.%Y"),
-                "time_start": "8:20",
-                "time_end": "9:40",
-                "subject": "Алгоритмы и структуры данных",
-                "type": "Лекция",
-                "teacher": "Козлов К.К.",
-                "room": "Ауд. 102",
-                "additional_info": None
-            },
-            {
-                "date": (monday + timedelta(days=1)).strftime("%d.%m.%Y"),
-                "time_start": "13:00",
-                "time_end": "14:20",
-                "subject": "Базы данных",
-                "type": "Практика",
-                "teacher": "Новиков Н.Н.",
-                "room": "Ауд. 206",
-                "additional_info": None
-            }
+            create_lesson(tuesday_str, "8:20", "9:40", "Алгоритмы и структуры данных", "Лекция", 
+                         "Козлов К.К.", "Ауд. 102"),
+            create_lesson(tuesday_str, "13:00", "14:20", "Базы данных", "Практика", 
+                         "Новиков Н.Н.", "Ауд. 206")
         ])
         
         # Среда
+        wednesday_str = (monday + timedelta(days=2)).strftime("%d.%m.%Y")
         test_schedule.extend([
-            {
-                "date": (monday + timedelta(days=2)).strftime("%d.%m.%Y"),
-                "time_start": "9:50",
-                "time_end": "11:10",
-                "subject": "Веб-разработка",
-                "type": "Практика",
-                "teacher": "Морозов М.М.",
-                "room": "Ауд. 207",
-                "additional_info": None
-            },
-            {
-                "date": (monday + timedelta(days=2)).strftime("%d.%m.%Y"),
-                "time_start": "11:20",
-                "time_end": "12:40",
-                "subject": "Операционные системы",
-                "type": "Лекция",
-                "teacher": "Волков В.В.",
-                "room": "Ауд. 302",
-                "additional_info": None
-            },
-            {
-                "date": (monday + timedelta(days=2)).strftime("%d.%m.%Y"),
-                "time_start": "14:30",
-                "time_end": "15:50",
-                "subject": "Иностранный язык",
-                "type": "Практика",
-                "teacher": "Смирнова С.С.",
-                "room": "Ауд. 401",
-                "additional_info": None
-            }
+            create_lesson(wednesday_str, "9:50", "11:10", "Веб-разработка", "Практика", 
+                         "Морозов М.М.", "Ауд. 207"),
+            create_lesson(wednesday_str, "11:20", "12:40", "Операционные системы", "Лекция", 
+                         "Волков В.В.", "Ауд. 302"),
+            create_lesson(wednesday_str, "14:30", "15:50", "Иностранный язык", "Практика", 
+                         "Смирнова С.С.", "Ауд. 401")
         ])
         
         # Четверг
+        thursday_str = (monday + timedelta(days=3)).strftime("%d.%m.%Y")
         test_schedule.extend([
-            {
-                "date": (monday + timedelta(days=3)).strftime("%d.%m.%Y"),
-                "time_start": "8:20",
-                "time_end": "9:40",
-                "subject": "Компьютерные сети",
-                "type": "Лекция",
-                "teacher": "Лебедев Л.Л.",
-                "room": "Ауд. 103",
-                "additional_info": None
-            },
-            {
-                "date": (monday + timedelta(days=3)).strftime("%d.%m.%Y"),
-                "time_start": "13:00",
-                "time_end": "14:20",
-                "subject": "Машинное обучение",
-                "type": "Лекция",
-                "teacher": "Федоров Ф.Ф.",
-                "room": "Ауд. 303",
-                "additional_info": None
-            }
+            create_lesson(thursday_str, "8:20", "9:40", "Компьютерные сети", "Лекция", 
+                         "Лебедев Л.Л.", "Ауд. 103"),
+            create_lesson(thursday_str, "13:00", "14:20", "Машинное обучение", "Лекция", 
+                         "Федоров Ф.Ф.", "Ауд. 303")
         ])
         
         # Пятница
+        friday_str = (monday + timedelta(days=4)).strftime("%d.%m.%Y")
         test_schedule.extend([
-            {
-                "date": (monday + timedelta(days=4)).strftime("%d.%m.%Y"),
-                "time_start": "9:50",
-                "time_end": "11:10",
-                "subject": "Проектирование ПО",
-                "type": "Практика",
-                "teacher": "Орлов О.О.",
-                "room": "Ауд. 208",
-                "additional_info": None
-            },
-            {
-                "date": (monday + timedelta(days=4)).strftime("%d.%m.%Y"),
-                "time_start": "11:20",
-                "time_end": "12:40",
-                "subject": "Кибербезопасность",
-                "type": "Лекция",
-                "teacher": "Романов Р.Р.",
-                "room": "Ауд. 304",
-                "additional_info": None
-            }
+            create_lesson(friday_str, "9:50", "11:10", "Проектирование ПО", "Практика", 
+                         "Орлов О.О.", "Ауд. 208"),
+            create_lesson(friday_str, "11:20", "12:40", "Кибербезопасность", "Лекция", 
+                         "Романов Р.Р.", "Ауд. 304")
         ])
         
         # Суббота (обычно пар меньше)
+        saturday_str = (monday + timedelta(days=5)).strftime("%d.%m.%Y")
         test_schedule.extend([
-            {
-                "date": (monday + timedelta(days=5)).strftime("%d.%m.%Y"),
-                "time_start": "8:20",
-                "time_end": "9:40",
-                "subject": "Физкультура",
-                "type": "Практика",
-                "teacher": "Спортов С.С.",
-                "room": "Спортзал",
-                "additional_info": None
-            }
+            create_lesson(saturday_str, "8:20", "9:40", "Физкультура", "Практика", 
+                         "Спортов С.С.", "Спортзал")
         ])
         
         # Воскресенье - выходной, пар нет
@@ -1598,7 +1620,15 @@ class ScheduleScraper(BaseScraper):
                     # Проверяем, попадает ли занятие в диапазон
                     if start_date <= new_lesson_date <= end_date:
                         new_lesson = lesson.copy()
-                        new_lesson["date"] = new_lesson_date.strftime("%d.%m.%Y")
+                        new_date_str = new_lesson_date.strftime("%d.%m.%Y")
+                        new_lesson["date"] = new_date_str
+                        # Обновляем ID для новой даты
+                        new_lesson["id"] = _generate_lesson_id(
+                            new_lesson.get("title", ""), 
+                            new_date_str, 
+                            new_lesson.get("start", ""), 
+                            len(result_schedule)
+                        )
                         result_schedule.append(new_lesson)
                 
                 # Переходим к следующей неделе

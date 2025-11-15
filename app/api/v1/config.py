@@ -31,6 +31,7 @@ class UniversityConfigRequest(BaseModel):
                     "students_schedule": "/students/schedule",
                     "students_contacts": "/students/contacts",
                     "students_platforms": "/students/platforms",
+                    "students_maps": "/students/maps",
                     "students_teacher_info": "/students/teacher_info"
                 }
             }
@@ -61,6 +62,7 @@ class UniversityConfigResponse(BaseModel):
                     "students_schedule": "/students/schedule",
                     "students_contacts": "/students/contacts",
                     "students_platforms": "/students/platforms",
+                    "students_maps": "/students/maps",
                     "students_teacher_info": "/students/teacher_info"
                 }
             }
@@ -286,6 +288,7 @@ async def get_university_endpoints_status(
         "students_schedule": false,
         "students_contacts": false,
         "students_platforms": false,
+        "students_maps": false,
         "students_teacher_info": false
     }
     ```
@@ -323,6 +326,7 @@ async def get_university_endpoints_status(
         "students_schedule",
         "students_contacts",
         "students_platforms",
+        "students_maps",
         "students_teacher_info"
     ]
     

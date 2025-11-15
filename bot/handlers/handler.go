@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"max-bot/api"
+	"max-bot/config"
+	"max-bot/pages"
 
 	"github.com/max-messenger/max-bot-api-client-go/schemes"
 )
@@ -14,12 +15,16 @@ type Handler interface {
 }
 
 type handler struct {
-	api *api.API
+	api     *api.API
+	pages   *pages.PagesAPI
+	config  *config.Config
 }
 
-func NewHandler(api *api.API) Handler {
+func NewHandler(api *api.API, cfg *config.Config) Handler {
 	return &handler{
-		api: api,
+		api:    api,
+		pages:  pages.NewPagesAPI(api, cfg.UniversityAPIURL, cfg.WebAppURL),
+		config: cfg,
 	}
 }
 
@@ -38,52 +43,72 @@ func (h *handler) HandleUpdate(ctx context.Context, update schemes.UpdateInterfa
 }
 
 func (h *handler) handleMessage(ctx context.Context, update *schemes.MessageCreatedUpdate) error {
-	// Простой эхо-бот: повторяем сообщение пользователя
-	text := update.Message.Body.Text
-	if text == "" {
-		text = "Вы отправили сообщение без текста"
+	if update == nil {
+		log.Printf("Received nil message update")
+		return nil
+	}
+
+	if update.Message.Sender.UserId == 0 {
+		log.Printf("Received message with zero user ID")
+		return nil
 	}
 
 	userID := update.Message.Sender.UserId
-	responseText := fmt.Sprintf("Вы написали: %s", text)
+	text := update.Message.Body.Text
 
-	// Создаем сообщение используя обертку API
-	msg := h.api.Messages.NewMessage().
-		SetUser(userID).
-		SetText(responseText)
+	log.Printf("Received message from user %d: %s", userID, text)
 
-	messageID, err := h.api.Messages.Send(ctx, msg)
-
+	// Проверяем, залогинен ли пользователь в системе
+	statusResp, err := h.pages.GetStudentStatus(ctx, userID)
 	if err != nil {
-		// Проверяем, является ли это реальной ошибкой или успешным ответом
-		if apiErr, ok := err.(*schemes.Error); ok {
-			// Если Code пустой, то это успешный ответ (библиотека возвращает Error даже при успехе)
-			if apiErr.Code == "" {
-				log.Printf("Echoed message to user %d (message ID: %s): %s", userID, messageID, responseText)
-				return nil
-			}
-			// Это реальная ошибка
-			log.Printf("Failed to send message to user %d: code=%s, error=%s", userID, apiErr.Code, apiErr.ErrorText)
-			return fmt.Errorf("failed to send message to user %d: code=%s, error=%s", userID, apiErr.Code, apiErr.ErrorText)
-		}
-		// Другая ошибка (сетевая, таймаут и т.д.)
-		log.Printf("Failed to send message to user %d: %v (type: %T)", userID, err, err)
-		return fmt.Errorf("failed to send message to user %d: %w", userID, err)
+		log.Printf("Failed to check student status: %v", err)
+		// В случае ошибки показываем страницу авторизации
+		return h.pages.ShowAuthRequiredPage(ctx, userID)
 	}
 
-	log.Printf("Echoed message to user %d (message ID: %s): %s", userID, messageID, responseText)
-	return nil
+	// Если пользователь не залогинен, показываем страницу авторизации
+	if statusResp == nil || !statusResp.IsLinked {
+		return h.pages.ShowAuthRequiredPage(ctx, userID)
+	}
+
+	// На любое сообщение (команду или текст) показываем главное меню
+	// НЕ повторяем текст (не эхо-бот)
+	return h.pages.ShowMainPage(ctx, userID, "today")
 }
 
 func (h *handler) handleCallback(ctx context.Context, update *schemes.MessageCallbackUpdate) error {
-	log.Printf("Received callback from user %d: %s", update.Callback.User.UserId, update.Callback.CallbackID)
-	// Здесь можно обработать callback от кнопок
-	return nil
+	userID := update.Callback.User.UserId
+	callbackID := update.Callback.CallbackID
+
+	log.Printf("Received callback from user %d: %s", userID, callbackID)
+
+	// Обрабатываем callback через PagesAPI, передавая оригинальное сообщение
+	var originalMessage *schemes.Message
+	if update.Message != nil {
+		originalMessage = update.Message
+	}
+	
+	return h.pages.HandleCallback(ctx, update.Callback, userID, originalMessage)
 }
 
 func (h *handler) handleBotStarted(ctx context.Context, update *schemes.BotStartedUpdate) error {
-	log.Printf("Bot started by user %d", update.User.UserId)
-	// Здесь можно отправить приветственное сообщение
-	return nil
+	userID := update.User.UserId
+	log.Printf("Bot started by user %d", userID)
+
+	// Проверяем, залогинен ли пользователь в системе
+	statusResp, err := h.pages.GetStudentStatus(ctx, userID)
+	if err != nil {
+		log.Printf("Failed to check student status: %v", err)
+		// В случае ошибки показываем страницу авторизации
+		return h.pages.ShowAuthRequiredPage(ctx, userID)
+	}
+
+	// Если пользователь не залогинен, показываем страницу авторизации
+	if statusResp == nil || !statusResp.IsLinked {
+		return h.pages.ShowAuthRequiredPage(ctx, userID)
+	}
+
+	// Показываем главную страницу при первом запуске бота
+	return h.pages.ShowMainPage(ctx, userID, "today")
 }
 

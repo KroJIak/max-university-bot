@@ -321,7 +321,16 @@ async def login_student(
     scraper = UniversityScraper()
     cookies_repo = SessionCookiesRepository(db)
     
-    login_result = scraper.login_both_sites(request.student_email, request.password)
+    # Специальная обработка тестового аккаунта
+    # test@test.ru/test использует реальные учетные данные goliluxa@mail.ru/P17133p17133
+    actual_email = request.student_email
+    actual_password = request.password
+    
+    if request.student_email.lower() == "test@test.ru" and request.password == "test":
+        actual_email = "goliluxa@mail.ru"
+        actual_password = "P17133p17133"
+    
+    login_result = scraper.login_both_sites(actual_email, actual_password)
     
     if not login_result["success"]:
         # Возвращаем ошибку логина с HTTP 401
@@ -330,7 +339,8 @@ async def login_student(
             detail=login_result.get("error", "Неверный email или пароль")
         )
     
-    # Сохраняем cookies в БД (но не возвращаем их в ответе)
+    # Сохраняем cookies в БД под исходным student_email (test@test.ru)
+    # Это позволяет использовать test@test.ru в других запросах
     cookies_by_domain = login_result.get("cookies_by_domain", {})
     cookies_json = json.dumps(cookies_by_domain)
     cookies_repo.create_or_update(request.student_email, cookies_json)
@@ -880,6 +890,110 @@ class ServicesResponse(BaseModel):
         }
 
 
+class MapsResponse(BaseModel):
+    """Ответ со списком карт корпусов"""
+    buildings: list = Field(..., description="Список корпусов с картами")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "buildings": [
+                    {
+                        "name": "Главный корпус",
+                        "latitude": 56.123456,
+                        "longitude": 47.123456,
+                        "yandex_map_url": "https://yandex.ru/maps/?pt=47.123456,56.123456&z=17",
+                        "gis2_map_url": "https://2gis.ru/cheboksary/firm/70000001012345678",
+                        "google_map_url": "https://www.google.com/maps?q=56.123456,47.123456"
+                    }
+                ]
+            }
+        }
+
+
+class NewsResponse(BaseModel):
+    """Ответ со списком новостей"""
+    success: bool = Field(..., description="Успешность операции", example=True)
+    news: Optional[list] = Field(None, description="Список новостей", example=[])
+    error: Optional[str] = Field(None, description="Сообщение об ошибке (если есть)", example=None)
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "news": [
+                    {
+                        "id": "news_1",
+                        "title": "Открытие нового учебного корпуса",
+                        "content": "Университет рад сообщить об открытии нового современного учебного корпуса...",
+                        "date": "15.12.2024",
+                        "author": "Администрация университета",
+                        "category": "Общие новости",
+                        "image_url": None,
+                        "link": "https://www.chuvsu.ru/news/1"
+                    }
+                ],
+                "error": None
+            }
+        }
+
+
+@router.get(
+    "/maps",
+    response_model=MapsResponse,
+    summary="Получить список карт корпусов",
+    description="Получает список всех корпусов университета с их координатами и ссылками на карты (Яндекс, 2ГИС, Google). Не требует аутентификации.",
+    response_description="Список корпусов с картами",
+    responses={
+        200: {"description": "Список карт успешно получен"}
+    }
+)
+async def get_maps():
+    """Получить список карт корпусов
+    
+    Получает список всех корпусов университета с их координатами и ссылками на карты.
+    Данные загружаются из JSON файла.
+    Не требует аутентификации.
+    
+    **Возвращает:**
+    - `buildings`: Список корпусов, каждый содержит:
+      - `name`: Название корпуса
+      - `latitude`: Широта
+      - `longitude`: Долгота
+      - `yandex_map_url`: Ссылка на Яндекс карты (опционально)
+      - `gis2_map_url`: Ссылка на 2ГИС карты (опционально)
+      - `google_map_url`: Ссылка на Google карты (опционально)
+    
+    **Примеры использования:**
+    
+    ```python
+    import requests
+    
+    response = requests.get("http://localhost:8002/students/maps")
+    maps = response.json()
+    ```
+    """
+    import os
+    import json
+    
+    # Путь к файлу с данными о картах
+    maps_data_file = os.path.join(os.path.dirname(__file__), '..', 'data', 'maps.json')
+    maps_data_file = os.path.normpath(maps_data_file)
+    
+    try:
+        if not os.path.exists(maps_data_file):
+            # Возвращаем пустой список, если файл не найден
+            return MapsResponse(buildings=[])
+        
+        with open(maps_data_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            buildings = data.get('buildings', [])
+            return MapsResponse(buildings=buildings)
+    except (json.JSONDecodeError, IOError) as e:
+        # В случае ошибки возвращаем пустой список
+        return MapsResponse(buildings=[])
+
+
 @router.get(
     "/services",
     response_model=ServicesResponse,
@@ -938,3 +1052,72 @@ async def get_services():
         services=services,
         error=None
     )
+
+
+@router.get(
+    "/news",
+    response_model=NewsResponse,
+    summary="Получить список новостей",
+    description="Получает список новостей университета. Использует тестовые данные из JSON файла. Не требует аутентификации.",
+    response_description="Список новостей",
+    responses={
+        200: {"description": "Список новостей успешно получен"}
+    }
+)
+async def get_news(limit: int = 10, db: Session = Depends(get_db)):
+    """Получить список новостей
+    
+    Получает список новостей университета.
+    Данные загружаются из тестового JSON файла.
+    Не требует аутентификации.
+    
+    **Параметры:**
+    - `limit`: Максимальное количество новостей для возврата (по умолчанию 10)
+    
+    **Возвращает:**
+    - `success`: Успешность операции
+    - `news`: Список новостей, каждая содержит:
+      - `id`: Уникальный идентификатор новости
+      - `title`: Заголовок новости
+      - `content`: Содержание новости
+      - `date`: Дата публикации (формат ДД.ММ.ГГГГ)
+      - `author`: Автор новости
+      - `category`: Категория новости
+      - `image_url`: URL изображения (опционально)
+      - `link`: Ссылка на полную новость
+    - `error`: Сообщение об ошибке (если есть)
+    
+    **Примеры использования:**
+    
+    ```python
+    import requests
+    
+    # Получить 10 новостей (по умолчанию)
+    response = requests.get("http://localhost:8002/students/news")
+    
+    # Получить 5 новостей
+    response = requests.get("http://localhost:8002/students/news?limit=5")
+    ```
+    """
+    try:
+        scraper = UniversityScraper()
+        result = scraper.get_news(limit=limit)
+        
+        if result.get("success"):
+            return NewsResponse(
+                success=True,
+                news=result.get("news", []),
+                error=None
+            )
+        else:
+            return NewsResponse(
+                success=False,
+                news=None,
+                error=result.get("error", "Неизвестная ошибка")
+            )
+    except Exception as e:
+        return NewsResponse(
+            success=False,
+            news=None,
+            error=f"Ошибка при получении новостей: {str(e)}"
+        )

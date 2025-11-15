@@ -4,6 +4,7 @@ import styles from './ScheduleCard.module.scss';
 
 type ScheduleCardProps = {
   item: ScheduleItem;
+  onClick?: (item: ScheduleItem) => void;
 };
 
 const typeLabel: Record<ScheduleItem['type'], string> = {
@@ -18,9 +19,13 @@ const typeColor: Record<ScheduleItem['type'], string> = {
   lab: palette.accentLab,
 };
 
-export function ScheduleCard({ item }: ScheduleCardProps) {
+export function ScheduleCard({ item, onClick }: ScheduleCardProps) {
+  const handleClick = () => {
+    onClick?.(item);
+  };
+
   return (
-    <article className={styles.card}>
+    <article className={styles.card} onClick={handleClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
       <div className={styles.timeColumn}>
         <span className={styles.time}>{item.start}</span>
         <span className={styles.timeMuted}>{item.end}</span>

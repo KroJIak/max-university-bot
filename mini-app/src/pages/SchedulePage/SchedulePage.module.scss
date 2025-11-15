@@ -5,3 +5,14 @@
   padding: 0 var(--page-padding-inline) var(--page-padding-bottom);
 }
 
+.selectDayMessage {
+  padding: 48px 32px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-primary);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: clamp(15px, 4vw, 16px);
+  line-height: 1.5;
+  box-shadow: var(--shadow-elevated);
+}
+

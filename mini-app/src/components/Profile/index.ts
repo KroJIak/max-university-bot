@@ -1,3 +1,4 @@
+export { AboutModal } from './AboutModal';
 export { ProfileSummarySection } from './ProfileSummarySection';
 export { ProfileInfoSection } from './ProfileInfoSection';
 export { ProfileStatsSection } from './ProfileStatsSection';

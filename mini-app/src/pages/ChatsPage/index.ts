@@ -1,0 +1,2 @@
+export { ChatsPage } from './ChatsPage';
+

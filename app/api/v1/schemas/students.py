@@ -10,7 +10,7 @@ class StudentLoginRequest(BaseModel):
     Выполняет логин на сайте университета с использованием credentials студента
     и сохраняет связь между пользователем MAX и аккаунтом студента.
     """
-    user_id: int = Field(..., description="ID пользователя в системе MAX (Telegram user_id)", example=123456789)
+    user_id: int = Field(..., description="ID пользователя в системе MAX", example=123456789)
     university_id: int = Field(..., description="ID университета", example=1)
     student_email: EmailStr = Field(..., description="Email студента для входа на сайт университета", example="student@university.ru")
     password: str = Field(..., description="Пароль студента для входа на сайт университета", example="password123")
@@ -246,6 +246,27 @@ class PlatformsResponse(BaseModel):
                     {"key": "library", "name": "Электронная библиотека", "url": "https://library.university.ru", "emoji": "📖"}
                 ],
                 "error": None
+            }
+        }
+
+
+class MapsResponse(BaseModel):
+    """Ответ со списком карт корпусов"""
+    buildings: list = Field(..., description="Список корпусов с картами")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "buildings": [
+                    {
+                        "name": "Главный корпус",
+                        "latitude": 56.123456,
+                        "longitude": 47.123456,
+                        "yandex_map_url": "https://yandex.ru/maps/?pt=47.123456,56.123456&z=17",
+                        "gis2_map_url": "https://2gis.ru/cheboksary/firm/70000001012345678",
+                        "google_map_url": "https://www.google.com/maps?q=56.123456,47.123456"
+                    }
+                ]
             }
         }
 

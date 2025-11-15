@@ -11,6 +11,9 @@ type LayoutProps = PropsWithChildren<{
   onNavigate: (page: FooterNavKey) => void;
   showAvatar?: boolean;
   onBack?: (() => void) | null;
+  onNotificationsClick?: () => void;
+  hasUnreadNotifications?: boolean;
+  onSearchClick?: () => void;
 }>;
 
 export function Layout({
@@ -20,10 +23,20 @@ export function Layout({
   onNavigate,
   showAvatar = true,
   onBack = null,
+  onNotificationsClick,
+  hasUnreadNotifications = false,
+  onSearchClick,
 }: LayoutProps) {
   return (
     <div className={styles.container}>
-      <Header title={title} showAvatar={showAvatar} onBack={onBack ?? undefined} />
+      <Header
+        title={title}
+        showAvatar={showAvatar}
+        onBack={onBack ?? undefined}
+        onNotificationsClick={onNotificationsClick}
+        hasUnreadNotifications={hasUnreadNotifications}
+        onSearchClick={onSearchClick}
+      />
       <main className={styles.main}>{children}</main>
       <Footer activePage={activePage} onNavigate={onNavigate} />
     </div>

@@ -73,3 +73,23 @@
   height: 24px;
 }
 
+.notificationWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff3b30;
+  border: 2px solid var(--color-surface-soft);
+  z-index: 1;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+

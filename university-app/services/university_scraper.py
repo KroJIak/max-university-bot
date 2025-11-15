@@ -5,6 +5,7 @@ from .teachers import TeachersScraper
 from .schedule import ScheduleScraper
 from .contacts import ContactsScraper
 from .personal_data import PersonalDataScraper
+from .news import NewsScraper
 
 
 class UniversityScraper(BaseScraper):
@@ -41,6 +42,11 @@ class UniversityScraper(BaseScraper):
         self.personal_data.session = self.session
         self.personal_data.base_url = self.base_url
         self.personal_data.lk_base_url = self.lk_base_url
+        
+        self.news = NewsScraper()
+        self.news.session = self.session
+        self.news.base_url = self.base_url
+        self.news.lk_base_url = self.lk_base_url
     
     # Делегируем методы авторизации
     def login(self, email: str, password: str):
@@ -70,3 +76,7 @@ class UniversityScraper(BaseScraper):
     # Делегируем методы личных данных
     def get_student_personal_data(self, cookies_json=None):
         return self.personal_data.get_student_personal_data(cookies_json)
+    
+    # Делегируем методы новостей
+    def get_news(self, limit: int = 10, cookies_json=None):
+        return self.news.get_news(limit, cookies_json)

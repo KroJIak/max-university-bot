@@ -1,0 +1,22 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-gap);
+  padding: 0 var(--page-padding-inline) var(--page-padding-bottom);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: clamp(24px, 6vw, 48px);
+}
+
+.message {
+  font-size: clamp(16px, 4vw, 18px);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+

@@ -52,3 +52,13 @@
   gap: 14px;
 }
 
+.emptyState {
+  padding: 32px;
+  border-radius: 18px;
+  background: var(--color-surface-soft);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: clamp(14px, 3.5vw, 15px);
+  line-height: 1.5;
+}
+

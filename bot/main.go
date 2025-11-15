@@ -45,7 +45,7 @@ func main() {
 	log.Printf("Bot started: %s (ID: %d)", botInfo.Name, botInfo.UserId)
 
 	// Создаем обработчики
-	handler := handlers.NewHandler(maxAPI)
+	handler := handlers.NewHandler(maxAPI, cfg)
 
 	// Обработка сигналов для graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -57,7 +57,11 @@ func main() {
 		for update := range maxAPI.GetUpdates(ctx) {
 			if err := handler.HandleUpdate(ctx, update); err != nil {
 				// Логируем ошибку с деталями типа обновления
-				log.Printf("Failed to handle update (type: %T): %v", update, err)
+				if err.Error() != "" {
+					log.Printf("Failed to handle update (type: %T): %v", update, err)
+				} else {
+					log.Printf("Failed to handle update (type: %T): unknown error", update)
+				}
 			}
 		}
 		log.Println("Updates channel closed")

@@ -21,6 +21,7 @@ export const ProfileInfoSection: FC<ProfileInfoSectionProps> = ({ rows }) => {
             key={row.id}
             className={styles.row}
             data-last={index === rows.length - 1 ? 'true' : undefined}
+            data-profile-field={row.id}
           >
           <span className={styles.label}>{row.label}</span>
           <span className={styles.value}>{row.value}</span>

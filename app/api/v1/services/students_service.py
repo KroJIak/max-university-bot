@@ -20,7 +20,7 @@ async def validate_university_api_config(db: Session, university_id: int, endpoi
         endpoint_key: Ключ endpoint для проверки (например, "students_login")
     
     Returns:
-        Конфигурация University API
+        Конфигурация University API с флагом use_ghost_api, если endpoint пустой
     
     Raises:
         HTTPException: Если конфигурация не найдена или endpoint выключен
@@ -34,13 +34,24 @@ async def validate_university_api_config(db: Session, university_id: int, endpoi
     
     # Проверяем, указан ли endpoint в конфигурации
     endpoints = config.get("endpoints", {})
-    if endpoint_key not in endpoints or not endpoints.get(endpoint_key) or endpoints.get(endpoint_key).strip() == "":
-        # Endpoint не настроен или пустой - возвращаем 404
+    
+    # Если endpoint включен (есть в конфигурации), но пустой - используем ghost-api
+    if endpoint_key in endpoints:
+        endpoint_value = endpoints.get(endpoint_key, "").strip()
+        if not endpoint_value:
+            # Endpoint включен, но пустой - используем ghost-api
+            config["use_ghost_api"] = True
+            return config
+    
+    # Если endpoint не включен (нет в конфигурации) - возвращаем 404
+    if endpoint_key not in endpoints:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Endpoint '{endpoint_key}' не настроен для университета {university_id}"
         )
     
+    # Endpoint включен и имеет значение - используем University API
+    config["use_ghost_api"] = False
     return config
 
 
@@ -117,14 +128,36 @@ async def save_student_credentials(
     """
     credentials_repo = StudentCredentialsRepository(db)
     
+    # Если существует запись с таким user_id
     if existing_credential:
-        was_inactive = not existing_credential.is_active
-        existing_credential.student_email = student_email
-        existing_credential.is_active = True
-        db.commit()
-        db.refresh(existing_credential)
-        return existing_credential, was_inactive
+        # Если email тот же - просто обновляем
+        if existing_credential.student_email == student_email:
+            was_inactive = not existing_credential.is_active
+            existing_credential.is_active = True
+            db.commit()
+            db.refresh(existing_credential)
+            return existing_credential, was_inactive
+        else:
+            # Если email другой - удаляем старую запись и создаем новую
+            credentials_repo.delete_by_user_id(user_id)
+            db.commit()
+            # Создаем новую запись
+            credential = credentials_repo.create(
+                user_id=user_id,
+                student_email=student_email
+            )
+            db.commit()
+            db.refresh(credential)
+            return credential, False
     else:
+        # Проверяем, нет ли записи с таким user_id (на случай, если existing_credential не был передан)
+        existing = credentials_repo.get_by_user_id_any(user_id)
+        if existing:
+            # Удаляем старую запись
+            credentials_repo.delete_by_user_id(user_id)
+            db.commit()
+        
+        # Создаем новую запись
         credential = credentials_repo.create(
             user_id=user_id,
             student_email=student_email
@@ -148,18 +181,22 @@ def validate_student_email_uniqueness(
     
     Raises:
         HTTPException: Если email уже используется другим пользователем
-    """
-    existing_credential = credentials_repo.get_by_user_id_any(user_id)
-    if existing_credential and existing_credential.student_email != student_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Пользователь уже связан с другим аккаунтом: {existing_credential.student_email}"
-        )
     
+    Примечание:
+        - Тестовый аккаунт test@test.ru может использоваться любым user_id
+        - Если user_id уже существует, старая связь будет удалена при сохранении
+    """
+    # Тестовый аккаунт может использоваться любым user_id
+    if student_email.lower() == "test@test.ru":
+        return
+    
+    # Проверяем, не используется ли email другим user_id
     existing_email = credentials_repo.get_by_email(student_email)
     if existing_email and existing_email.user_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Этот email уже привязан к другому пользователю"
         )
+    
+    # Если user_id уже существует, это нормально - старая связь будет удалена при сохранении
 

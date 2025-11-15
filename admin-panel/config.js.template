@@ -1,0 +1,11 @@
+// Конфигурация API для админ-панели
+// Переменные окружения подставляются через envsubst в docker-entrypoint.sh
+window.APP_CONFIG = {
+  MAX_API_DOMAIN_URL: '${MAX_API_DOMAIN_URL}',
+  MAX_API_HOST: '${MAX_API_HOST}',
+  MAX_API_PORT: '${MAX_API_PORT}',
+  GHOST_API_DOMAIN_URL: '${GHOST_API_DOMAIN_URL}',
+  GHOST_API_HOST: '${GHOST_API_HOST}',
+  GHOST_API_PORT: '${GHOST_API_PORT}'
+};
+

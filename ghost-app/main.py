@@ -48,7 +48,7 @@ app.add_middleware(
 
 # Подключаем роутеры
 app.include_router(students_router, prefix="/students", tags=["students"])
-app.include_router(upload_router, prefix="/upload", tags=["upload"])
+app.include_router(upload_router, tags=["upload"])  # Без prefix, так как в upload.py уже есть /upload
 
 
 @app.on_event("startup")

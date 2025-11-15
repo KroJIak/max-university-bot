@@ -105,6 +105,11 @@ class ServicesResponse(BaseModel):
     error: Optional[str] = None
 
 
+class MapsResponse(BaseModel):
+    """Ответ со списком карт корпусов"""
+    buildings: List[Dict] = Field(default_factory=list, description="Список корпусов с картами")
+
+
 def get_university_id_from_header(x_university_id: Optional[str] = Header(None, alias="X-University-Id")) -> int:
     """Получить university_id из заголовка запроса"""
     if not x_university_id:
@@ -330,4 +335,42 @@ async def get_services():
     ]
     
     return ServicesResponse(success=True, services=services, error=None)
+
+
+@router.get("/maps", response_model=MapsResponse)
+async def get_maps():
+    """Получить список карт корпусов
+    
+    Получает список всех корпусов университета с их координатами и ссылками на карты.
+    Данные загружаются из JSON файла.
+    Не требует аутентификации.
+    
+    **Возвращает:**
+    - `buildings`: Список корпусов, каждый содержит:
+      - `name`: Название корпуса
+      - `latitude`: Широта
+      - `longitude`: Долгота
+      - `yandex_map_url`: Ссылка на Яндекс карты (опционально)
+      - `gis2_map_url`: Ссылка на 2ГИС карты (опционально)
+      - `google_map_url`: Ссылка на Google карты (опционально)
+    """
+    import os
+    import json
+    
+    # Путь к файлу с данными о картах
+    maps_data_file = os.path.join(os.path.dirname(__file__), '..', 'data', 'maps.json')
+    maps_data_file = os.path.normpath(maps_data_file)
+    
+    try:
+        if not os.path.exists(maps_data_file):
+            # Возвращаем пустой список, если файл не найден
+            return MapsResponse(buildings=[])
+        
+        with open(maps_data_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            buildings = data.get('buildings', [])
+            return MapsResponse(buildings=buildings)
+    except (json.JSONDecodeError, IOError) as e:
+        # В случае ошибки возвращаем пустой список
+        return MapsResponse(buildings=[])
 

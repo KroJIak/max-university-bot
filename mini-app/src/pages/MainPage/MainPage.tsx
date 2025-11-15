@@ -6,11 +6,11 @@ import { apiClient } from '@components/api/client';
 import { dayTabs } from '@shared/data/mainPage';
 import type { ScheduleItem, DayTab } from '@shared/types/schedule';
 import {
-  formatDateForApi,
   formatDateRangeForApi,
   transformScheduleItemFromApi,
   groupScheduleByDate,
   getTodayTomorrowAfterTomorrow,
+  formatDateToKey,
 } from '@shared/utils/scheduleApi';
 import styles from './MainPage.module.scss';
 
@@ -76,16 +76,12 @@ function saveCachedSchedule(userId: number, scheduleByTab: Record<string, Schedu
   }
 }
 
-function formatDateToKey(date: Date): string {
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}.${month}.${year}`;
-}
 
 export function MainPage({ userId, onOpenFullSchedule, onOpenAllNews }: MainPageProps) {
   const cachedData = loadCachedSchedule(userId);
-  const { today, tomorrow, afterTomorrow } = getTodayTomorrowAfterTomorrow();
+  
+  // Мемоизируем даты, чтобы они не пересоздавались при каждом рендере
+  const { today, tomorrow, afterTomorrow } = useMemo(() => getTodayTomorrowAfterTomorrow(), []);
 
   const todayKey = formatDateToKey(today);
   const tomorrowKey = formatDateToKey(tomorrow);
@@ -104,8 +100,13 @@ export function MainPage({ userId, onOpenFullSchedule, onOpenAllNews }: MainPage
 
   useEffect(() => {
     let isCancelled = false;
+    let timeoutId: NodeJS.Timeout | null = null;
 
     async function loadSchedule() {
+      if (isCancelled) {
+        return;
+      }
+
       try {
         // Загружаем расписание для сегодня, завтра и послезавтра
         const dateRange = formatDateRangeForApi(today, afterTomorrow);
@@ -129,37 +130,52 @@ export function MainPage({ userId, onOpenFullSchedule, onOpenAllNews }: MainPage
 
           if (!isCancelled) {
             setScheduleByTab(newScheduleByTab);
-            if (loading) {
-              setLoading(false);
-            }
+            setLoading(false);
           }
         } else {
           if (!isCancelled) {
             setScheduleByTab(defaultScheduleByTab);
-            if (loading) {
-              setLoading(false);
-            }
+            setLoading(false);
           }
         }
       } catch (error) {
         console.error('[MainPage] Failed to load schedule', error);
         if (!isCancelled) {
           setScheduleByTab(defaultScheduleByTab);
-          if (loading) {
-            setLoading(false);
-          }
+          setLoading(false);
         }
       }
     }
 
-    if (!cachedData) {
+    // Если кэша нет, загружаем сразу
+    // Если кэш есть, показываем кэш и обновляем в фоне с задержкой, чтобы избежать лишних запросов
+    if (cachedData) {
+      // Кэш есть, показываем его сразу
+      setScheduleByTab(cachedData.scheduleByTab);
+      setLoading(false);
+      
+      // Обновляем в фоне только если кэш старше 4 минут (чтобы не дублировать запросы с DataPreloader)
+      const cacheAge = Date.now() - (cachedData.timestamp || 0);
+      const shouldRefresh = cacheAge > 4 * 60 * 1000; // 4 минуты
+      
+      if (shouldRefresh) {
+        // Обновляем в фоне с задержкой
+        timeoutId = setTimeout(() => {
+          loadSchedule();
+        }, 2000); // Задержка 2 секунды
+      }
+    } else {
+      // Кэша нет, загружаем сразу
       loadSchedule();
     }
 
     return () => {
       isCancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
-  }, [userId, todayKey, tomorrowKey, afterTomorrowKey, cachedData, loading, today, afterTomorrow]);
+  }, [userId, todayKey, tomorrowKey, afterTomorrowKey]); // Используем только строковые ключи, не объекты Date
 
   const updatedDayTabs = useMemo(() => {
     return dayTabs.map((tab, index) => {

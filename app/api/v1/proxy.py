@@ -16,6 +16,7 @@ from api.v1.schemas.students import (
     ScheduleResponse,
     ContactsResponse,
     PlatformsResponse,
+    MapsResponse,
     ServicesResponse
 )
 from api.v1.services.university_config import get_university_config
@@ -33,6 +34,7 @@ from api.v1.services.university_api_client import (
     call_university_api_schedule,
     call_university_api_contacts,
     call_university_api_platforms,
+    call_university_api_maps,
     call_university_api_services
 )
 import httpx
@@ -91,7 +93,7 @@ async def login_student(
     Вызывает University API для логина, получает cookies и сохраняет их в БД.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     - `university_id`: ID университета
     - `student_email`: Email студента для входа на сайт университета
     - `password`: Пароль студента для входа на сайт университета
@@ -197,7 +199,7 @@ async def get_student_status(
     Показывает, связан ли пользователь с аккаунтом студента и когда была создана связь.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     
@@ -281,7 +283,7 @@ async def get_student_credentials(
     Возвращает информацию о связи пользователя MAX с аккаунтом студента.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     
@@ -327,7 +329,7 @@ async def update_student_credentials(
     Если указан пароль, выполняется повторный логин на сайте университета.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     - `update_data`: Данные для обновления (email и/или пароль)
     
     **Примеры использования:**
@@ -408,7 +410,7 @@ async def unlink_student(
     Связь деактивируется, но не удаляется из БД. Можно восстановить, выполнив повторный логин.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     
@@ -451,7 +453,7 @@ async def delete_student_credentials(
     Это действие необратимо! Для восстановления необходимо выполнить повторный логин.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     
@@ -496,7 +498,7 @@ async def get_student_teachers(
     Передает student_email в University API, который сам получает cookies из своей БД и парсит данные.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     
@@ -521,9 +523,9 @@ async def get_student_teachers(
     # Проверяем конфигурацию и доступность метода для университета пользователя
     config = await validate_university_api_config(db, university_id, "students_teachers")
     
-    # Вызываем University API для получения списка преподавателей (передаем student_email)
+    # Вызываем University API или Ghost API для получения списка преподавателей (передаем student_email)
     try:
-        result = await call_university_api_tech(credential.student_email, config)
+        result = await call_university_api_tech(credential.student_email, config, university_id)
     except httpx.HTTPStatusError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -573,7 +575,7 @@ async def get_student_personal_data(
     Передает student_email в University API, который сам получает cookies из своей БД и парсит данные.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     
@@ -602,7 +604,8 @@ async def get_student_personal_data(
     try:
         result = await call_university_api_personal_data(
             student_email=credential.student_email,
-            config=config
+            config=config,
+            university_id=university_id
         )
     except httpx.HTTPStatusError:
         raise HTTPException(
@@ -653,7 +656,7 @@ async def get_teacher_info(
     Передает student_email и teacher_id в University API, который сам получает cookies из своей БД и парсит данные.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     - `teacher_id`: ID преподавателя (например, "tech0001")
     
     **Примеры использования:**
@@ -684,7 +687,8 @@ async def get_teacher_info(
         result = await call_university_api_teacher_info(
             student_email=credential.student_email,
             teacher_id=teacher_id,
-            config=config
+            config=config,
+            university_id=university_id
         )
     except httpx.HTTPStatusError:
         raise HTTPException(
@@ -736,7 +740,7 @@ async def get_student_schedule(
     Передает student_email и date_range в University API, который сам получает cookies из своей БД и парсит данные.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     - `date_range`: Промежуток дней в формате ДД.ММ-ДД.ММ (например: 10.11-03.12 или 20.12-05.01) или один день (например: 04.11)
     
     **Примеры использования:**
@@ -781,7 +785,8 @@ async def get_student_schedule(
         result = await call_university_api_schedule(
             student_email=credential.student_email,
             date_range=date_range,
-            config=config
+            config=config,
+            university_id=university_id
         )
         logger.info(f"[SCHEDULE] University API вернул результат: success={result.get('success')}, schedule_items={len(result.get('schedule', [])) if result.get('schedule') else 0}")
     except httpx.HTTPStatusError as e:
@@ -807,6 +812,13 @@ async def get_student_schedule(
     
     schedule_count = len(result.get("schedule", []))
     logger.info(f"[SCHEDULE] Успешно получено расписание: {schedule_count} занятий")
+    
+    # Логируем первое занятие для отладки
+    if result.get("schedule") and len(result.get("schedule", [])) > 0:
+        first_lesson = result.get("schedule")[0]
+        logger.debug(f"[SCHEDULE] Первое занятие из University API: {first_lesson}")
+        logger.info(f"[SCHEDULE] Поля первого занятия: {list(first_lesson.keys())}")
+        logger.info(f"[SCHEDULE] Есть ли undergruop: {'undergruop' in first_lesson}")
     
     return ScheduleResponse(
         success=True,
@@ -839,7 +851,7 @@ async def get_student_contacts(
     Передает student_email в University API, который сам получает cookies из своей БД и парсит данные.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     
@@ -868,7 +880,8 @@ async def get_student_contacts(
     try:
         result = await call_university_api_contacts(
             student_email=credential.student_email,
-            config=config
+            config=config,
+            university_id=university_id
         )
     except httpx.HTTPStatusError:
         raise HTTPException(
@@ -919,7 +932,7 @@ async def get_student_platforms(
     Передает запрос в University API, который возвращает статический список платформ.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     
@@ -946,7 +959,7 @@ async def get_student_platforms(
     
     # Вызываем University API для получения платформ
     try:
-        result = await call_university_api_platforms(config=config)
+        result = await call_university_api_platforms(config=config, university_id=university_id)
     except httpx.HTTPStatusError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -972,6 +985,72 @@ async def get_student_platforms(
 
 
 @router.get(
+    "/students/{user_id}/maps",
+    response_model=MapsResponse,
+    summary="Получить список карт корпусов",
+    description="Получает список всех корпусов университета с их координатами и ссылками на карты (Яндекс, 2ГИС, Google). Вызывает University API для получения списка карт.",
+    response_description="Список корпусов с картами",
+    responses={
+        200: {"description": "Список карт успешно получен"},
+        404: {"description": "Связь не найдена (необходимо сначала выполнить логин)"},
+        502: {"description": "Ошибка подключения к University API"},
+        503: {"description": "University API не настроен или endpoint недоступен"}
+    }
+)
+async def get_student_maps(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """Получить список карт корпусов для пользователя
+    
+    Получает список всех корпусов университета с их координатами и ссылками на карты.
+    Вызывает University API для получения списка карт.
+    Не требует аутентификации студента, но требует наличия связи (для получения university_id).
+    
+    **Параметры:**
+    - `user_id`: ID пользователя в системе MAX
+    
+    **Примеры использования:**
+    
+    ```python
+    import requests
+    
+    response = requests.get("http://localhost:8003/api/v1/students/123456789/maps")
+    ```
+    """
+    credentials_repo = StudentCredentialsRepository(db)
+    
+    # Получаем university_id из user_id
+    university_id = get_university_id_from_user(db, user_id)
+    
+    credential = credentials_repo.get_by_user_id(user_id)
+    if not credential:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Связь не найдена. Необходимо сначала выполнить логин."
+        )
+    
+    # Проверяем конфигурацию и доступность метода для университета пользователя
+    config = await validate_university_api_config(db, university_id, "students_maps")
+    
+    # Вызываем University API для получения карт
+    try:
+        result = await call_university_api_maps(config=config, university_id=university_id)
+    except httpx.HTTPStatusError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Не удалось получить карты"
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Ошибка подключения к University API: {str(e)}"
+        )
+    
+    return MapsResponse(**result)
+
+
+@router.get(
     "/students/{user_id}/services",
     response_model=ServicesResponse,
     summary="Получить список сервисов",
@@ -994,7 +1073,7 @@ async def get_student_services(
     Передает запрос в University API, который возвращает статический список сервисов.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     

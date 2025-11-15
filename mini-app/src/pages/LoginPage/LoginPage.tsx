@@ -10,23 +10,28 @@ type UniversityOption = {
 
 declare global {
   interface Window {
-    Telegram?: {
-      WebApp?: {
-        initDataUnsafe?: {
-          user?: {
-            id?: number;
-          };
+    WebApp?: {
+      initDataUnsafe?: {
+        user?: {
+          id?: number;
+          first_name?: string;
+          last_name?: string;
+          username?: string;
+          language_code?: string;
+          photo_url?: string;
         };
       };
+      ready?: () => void;
     };
   }
 }
 
 const MAX_SUGGESTIONS = 3;
-const isEmbedded = typeof window !== 'undefined' && window.self !== window.top;
+// Определяем, что приложение запущено через MAX (проверяем наличие WebApp объекта)
+const isEmbedded = typeof window !== 'undefined' && !!window.WebApp;
 
 type LoginPageProps = {
-  onLogin: (payload: { universityId: number; email: string; userId: number }) => void;
+  onLogin: (payload: { universityId: number; email: string; userId: number; universityName?: string }) => void;
 };
 
 export function LoginPage({ onLogin }: LoginPageProps) {
@@ -39,13 +44,45 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const maxIdValue = useMemo(
-    () =>
-      isEmbedded
-        ? String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id ?? '')
-        : '123456789',
-    [],
-  );
+  const [maxUserId, setMaxUserId] = useState<string>('123456789');
+
+  // Получаем user ID из MAX WebApp
+  useEffect(() => {
+    const checkWebApp = () => {
+      if (typeof window !== 'undefined' && window.WebApp) {
+        const userId = window.WebApp.initDataUnsafe?.user?.id;
+        if (userId) {
+          console.log('[LoginPage] Got user ID from MAX WebApp:', userId);
+          setMaxUserId(String(userId));
+          return;
+        }
+        console.log('[LoginPage] WebApp available but user ID not found yet');
+      }
+      console.log('[LoginPage] WebApp not available, using dev user ID');
+      setMaxUserId('123456789');
+    };
+
+    // Проверяем сразу
+    checkWebApp();
+
+    // Также проверяем после небольшой задержки на случай, если WebApp загружается асинхронно
+    const timeoutId = setTimeout(checkWebApp, 100);
+
+    // Подписываемся на событие готовности WebApp, если доступно
+    if (typeof window !== 'undefined' && window.WebApp?.ready) {
+      try {
+        window.WebApp.ready();
+      } catch (e) {
+        console.warn('[LoginPage] Failed to call WebApp.ready()', e);
+      }
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
+  const maxIdValue = maxUserId;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
@@ -109,20 +146,23 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       return;
     }
 
-    const userId = isEmbedded
-      ? Number(maxIdValue || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 123456789)
-      : 123456789;
+                const userId = Number(maxIdValue || window.WebApp?.initDataUnsafe?.user?.id || 123456789);
 
     setIsSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(null);
 
+    // Сначала убеждаемся, что пользователь существует в системе
     apiClient
-      .loginStudent({
-        userId,
-        universityId: Number(selectedUniversity),
-        student_email: email.trim(),
-        password,
+      .ensureUserExists(userId, Number(selectedUniversity))
+      .then(() => {
+        // Затем выполняем логин студента
+        return apiClient.loginStudent({
+          userId,
+          universityId: Number(selectedUniversity),
+          student_email: email.trim(),
+          password,
+        });
       })
       .then(() => {
         setSubmitSuccess('Вход выполнен успешно');
@@ -130,6 +170,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           universityId: Number(selectedUniversity),
           email: email.trim(),
           userId,
+          universityName: selectedOption?.title,
         });
       })
       .catch((error) => {

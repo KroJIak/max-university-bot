@@ -9,6 +9,7 @@ import (
 	"max-bot/services"
 	"max-bot/types"
 	"max-bot/utils"
+	"strings"
 	"time"
 
 	maxbot "github.com/max-messenger/max-bot-api-client-go"
@@ -17,17 +18,19 @@ import (
 
 // PagesAPI предоставляет методы для отображения страниц
 type PagesAPI struct {
-	api         *api.API
-	keyboards   *keyboards.Builder
+	api           *api.API
+	keyboards     *keyboards.Builder
 	universityAPI *services.UniversityAPIClient
+	webAppURL     string
 }
 
 // NewPagesAPI создает новый экземпляр PagesAPI
-func NewPagesAPI(api *api.API, universityAPIURL string) *PagesAPI {
+func NewPagesAPI(api *api.API, universityAPIURL string, webAppURL string) *PagesAPI {
 	return &PagesAPI{
-		api:         api,
-		keyboards:   keyboards.NewBuilder(api.Api),
+		api:           api,
+		keyboards:     keyboards.NewBuilder(api.Api),
 		universityAPI: services.NewUniversityAPIClient(universityAPIURL),
+		webAppURL:     webAppURL,
 	}
 }
 
@@ -64,6 +67,26 @@ func (p *PagesAPI) ShowServicesPage(ctx context.Context, userID int64) error {
 	return err
 }
 
+// GetStudentStatus получает статус студента (обертка над universityAPI)
+func (p *PagesAPI) GetStudentStatus(ctx context.Context, userID int64) (*services.StudentStatusResponse, error) {
+	return p.universityAPI.GetStudentStatus(ctx, userID)
+}
+
+// ShowAuthRequiredPage показывает страницу с требованием авторизации
+func (p *PagesAPI) ShowAuthRequiredPage(ctx context.Context, userID int64) error {
+	text := utils.FormatHeader("Авторизация") + "\n\n"
+	text += "*Для использования бота необходимо авторизоваться в системе.*\n\n"
+	text += "Пожалуйста, войдите в веб-приложение для авторизации."
+
+	msg := p.api.Messages.NewMessage().
+		SetUser(userID).
+		SetText(text).
+		SetFormat("markdown")
+
+	_, err := p.api.Messages.Send(ctx, msg)
+	return err
+}
+
 // ShowProfilePage показывает страницу профиля
 func (p *PagesAPI) ShowProfilePage(ctx context.Context, userID int64) error {
 	text, keyboard := p.buildProfilePageText(ctx, userID)
@@ -81,7 +104,7 @@ func (p *PagesAPI) ShowProfilePage(ctx context.Context, userID int64) error {
 // ShowSchedulePage показывает страницу расписания
 func (p *PagesAPI) ShowSchedulePage(ctx context.Context, userID int64) error {
 	text := utils.FormatHeader("Расписание") + "\n\n"
-	
+
 	// TODO: Получить расписание из API
 	today := time.Now()
 	text += "*" + formatDate(today) + "*\n"
@@ -102,7 +125,7 @@ func (p *PagesAPI) ShowSchedulePage(ctx context.Context, userID int64) error {
 func (p *PagesAPI) ShowNewsPage(ctx context.Context, userID int64) error {
 	width := 22
 	text := utils.FormatHeader("Новости") + "\n\n"
-	
+
 	// TODO: Получить новости из API
 	text += utils.FormatListHeader("Последние новости")
 	text += utils.FormatSeparator(width) + "\n\n"
@@ -125,7 +148,7 @@ func (p *PagesAPI) ShowNewsPage(ctx context.Context, userID int64) error {
 // ShowTeachersPage показывает страницу преподавателей
 func (p *PagesAPI) ShowTeachersPage(ctx context.Context, userID int64) error {
 	text := utils.FormatHeader("Преподаватели") + "\n\n"
-	
+
 	// TODO: Получить список преподавателей из API
 	text += "*Список преподавателей:*\n\n"
 	text += "1. Петров П.П. - Правоведение\n"
@@ -146,7 +169,7 @@ func (p *PagesAPI) ShowTeachersPage(ctx context.Context, userID int64) error {
 // ShowContactsPage показывает страницу контактов
 func (p *PagesAPI) ShowContactsPage(ctx context.Context, userID int64) error {
 	text := utils.FormatHeader("Контакты") + "\n\n"
-	
+
 	// TODO: Получить контакты из API
 	text += "*Важные контакты:*\n\n"
 	text += "📞 Приёмная комиссия: +7 (XXX) XXX-XX-XX\n"
@@ -181,7 +204,7 @@ func (p *PagesAPI) ShowMapsPage(ctx context.Context, userID int64) error {
 // ShowChatsPage показывает страницу чатов
 func (p *PagesAPI) ShowChatsPage(ctx context.Context, userID int64) error {
 	text := utils.FormatHeader("Чаты") + "\n\n"
-	
+
 	// TODO: Получить список чатов из API
 	text += "*Активные чаты:*\n\n"
 	text += "1. Общий чат группы\n"
@@ -201,7 +224,7 @@ func (p *PagesAPI) ShowChatsPage(ctx context.Context, userID int64) error {
 // ShowDebtsPage показывает страницу долгов
 func (p *PagesAPI) ShowDebtsPage(ctx context.Context, userID int64) error {
 	text := utils.FormatHeader("Долги") + "\n\n"
-	
+
 	// TODO: Получить информацию о долгах из API
 	text += "*Ваши долги:*\n\n"
 	text += "На данный момент у вас нет задолженностей ✅"
@@ -219,7 +242,7 @@ func (p *PagesAPI) ShowDebtsPage(ctx context.Context, userID int64) error {
 // ShowGradebookPage показывает страницу зачетки
 func (p *PagesAPI) ShowGradebookPage(ctx context.Context, userID int64) error {
 	text := utils.FormatHeader("Зачетка") + "\n\n"
-	
+
 	// TODO: Получить информацию о зачетке из API
 	text += "*Ваши оценки:*\n\n"
 	text += "Информация о зачетке будет доступна после подключения API"
@@ -237,7 +260,7 @@ func (p *PagesAPI) ShowGradebookPage(ctx context.Context, userID int64) error {
 // ShowNotificationsPage показывает страницу уведомлений
 func (p *PagesAPI) ShowNotificationsPage(ctx context.Context, userID int64) error {
 	text := utils.FormatHeader("Уведомления") + "\n\n"
-	
+
 	// TODO: Получить уведомления из API
 	text += "*Новые уведомления:*\n\n"
 	text += "Новых уведомлений нет"
@@ -273,7 +296,7 @@ func (p *PagesAPI) ShowThemePage(ctx context.Context, userID int64) error {
 // ShowPlatformsPage показывает страницу платформ
 func (p *PagesAPI) ShowPlatformsPage(ctx context.Context, userID int64) error {
 	text := utils.FormatHeader("Платформы") + "\n\n"
-	
+
 	// TODO: Получить список платформ из API
 	text += "*Доступные платформы:*\n\n"
 	text += "1. Курсы\n"
@@ -310,9 +333,9 @@ func (p *PagesAPI) buildMainPageText(ctx context.Context, userID int64, activeTa
 	}
 
 	width := 22 // Ширина для выравнивания
-	
+
 	text := utils.FormatHeader("Главная") + "\n\n"
-	
+
 	// Запрашиваем расписание на 3 дня (сегодня + 2 дня вперед)
 	dateRange := services.FormatDateRange(today, afterTomorrow)
 	scheduleResp, err := p.universityAPI.GetSchedule(ctx, userID, dateRange)
@@ -320,47 +343,48 @@ func (p *PagesAPI) buildMainPageText(ctx context.Context, userID int64, activeTa
 		log.Printf("Error getting schedule from API: %v", err)
 		// Если ошибка, показываем пустое расписание для всех дней
 		var scheduleDate string
-		if tab == "tomorrow" {
+		switch tab {
+		case "tomorrow":
 			scheduleDate = "завтра, " + tomorrowWeekday
-		} else if tab == "afterTomorrow" {
+		case "afterTomorrow":
 			scheduleDate = "послезавтра, " + afterTomorrowWeekday
-		} else {
+		default:
 			scheduleDate = "сегодня, " + todayWeekday
 		}
-		
+
 		text += utils.FormatSection("Расписание") + " _(" + scheduleDate + ")_\n"
 		text += utils.FormatSeparator(width) + "\n"
 		text += "Занятия на этот день отсутствуют\n"
-		keyboard := p.keyboards.MainPageMenu(todayWeekday, tomorrowWeekday, afterTomorrowWeekday, tab)
+		keyboard := p.keyboards.MainPageMenu(todayWeekday, tomorrowWeekday, afterTomorrowWeekday, tab, p.webAppURL)
 		return text, keyboard
 	}
 
 	// Получаем режим подгруппы пользователя
 	subgroupMode := services.GetSubgroupMode(userID)
-	
+
 	// Распределяем занятия по дням с учетом настроек подгруппы
 	scheduleByDate := p.groupScheduleByDate(scheduleResp.Schedule, today, tomorrow, afterTomorrow, subgroupMode)
-	
+
 	// Определяем дату и получаем занятия для выбранного дня
 	var scheduleDate string
 	var scheduleItems []string
-	
-	if tab == "tomorrow" {
+
+	switch tab {
+	case "tomorrow":
 		scheduleDate = "завтра, " + tomorrowWeekday
 		scheduleItems = p.formatScheduleItemsNew(scheduleByDate[tomorrow.Format("02.01.2006")])
-	} else if tab == "afterTomorrow" {
+	case "afterTomorrow":
 		scheduleDate = "послезавтра, " + afterTomorrowWeekday
 		scheduleItems = p.formatScheduleItemsNew(scheduleByDate[afterTomorrow.Format("02.01.2006")])
-	} else {
+	default:
 		// Сегодня (по умолчанию)
 		scheduleDate = "сегодня, " + todayWeekday
 		scheduleItems = p.formatScheduleItemsNew(scheduleByDate[today.Format("02.01.2006")])
 	}
-	
+
 	// Расписание
 	text += utils.FormatSection("Расписание") + " _(" + scheduleDate + ")_\n\n"
-	
-	
+
 	// Добавляем элементы расписания
 	if len(scheduleItems) == 0 {
 		text += "Занятия на этот день отсутствуют\n"
@@ -374,19 +398,19 @@ func (p *PagesAPI) buildMainPageText(ctx context.Context, userID int64, activeTa
 		}
 	}
 
-	keyboard := p.keyboards.MainPageMenu(todayWeekday, tomorrowWeekday, afterTomorrowWeekday, tab)
+	keyboard := p.keyboards.MainPageMenu(todayWeekday, tomorrowWeekday, afterTomorrowWeekday, tab, p.webAppURL)
 	return text, keyboard
 }
 
 // groupScheduleByDate группирует занятия по датам с учетом настроек подгруппы
 func (p *PagesAPI) groupScheduleByDate(items []services.ScheduleItem, today, tomorrow, afterTomorrow time.Time, subgroupMode services.SubgroupMode) map[string][]services.ScheduleItem {
 	result := make(map[string][]services.ScheduleItem)
-	
+
 	// Инициализируем пустые списки для всех трех дней
 	result[today.Format("02.01.2006")] = []services.ScheduleItem{}
 	result[tomorrow.Format("02.01.2006")] = []services.ScheduleItem{}
 	result[afterTomorrow.Format("02.01.2006")] = []services.ScheduleItem{}
-	
+
 	// Распределяем занятия по датам с фильтрацией по подгруппам
 	for _, item := range items {
 		// Парсим дату из формата "15.11.2025"
@@ -395,19 +419,19 @@ func (p *PagesAPI) groupScheduleByDate(items []services.ScheduleItem, today, tom
 			log.Printf("Error parsing date %s: %v", item.Date, err)
 			continue
 		}
-		
+
 		// Определяем, к какому дню относится занятие
 		dateKey := itemDate.Format("02.01.2006")
-		if dateKey == today.Format("02.01.2006") || 
-		   dateKey == tomorrow.Format("02.01.2006") || 
-		   dateKey == afterTomorrow.Format("02.01.2006") {
+		if dateKey == today.Format("02.01.2006") ||
+			dateKey == tomorrow.Format("02.01.2006") ||
+			dateKey == afterTomorrow.Format("02.01.2006") {
 			// Фильтруем по настройкам подгруппы
 			shouldInclude := false
-			
+
 			// Получаем подгруппу из поля undergruop или audience
 			undergroup := item.Undergroup
 			audience := item.Audience
-			
+
 			// Определяем, является ли пара общей
 			isCommonPair := false
 			if undergroup == "" {
@@ -416,7 +440,7 @@ func (p *PagesAPI) groupScheduleByDate(items []services.ScheduleItem, today, tom
 					isCommonPair = true
 				}
 			}
-			
+
 			// Применяем фильтр
 			switch subgroupMode {
 			case services.SubgroupModeFull:
@@ -443,24 +467,24 @@ func (p *PagesAPI) groupScheduleByDate(items []services.ScheduleItem, today, tom
 			default:
 				shouldInclude = true
 			}
-			
+
 			if shouldInclude {
 				result[dateKey] = append(result[dateKey], item)
 			}
 		}
 	}
-	
+
 	return result
 }
 
 // formatScheduleItemsNew преобразует элементы расписания из API в новый формат (две строки)
 func (p *PagesAPI) formatScheduleItemsNew(items []services.ScheduleItem) []string {
 	result := make([]string, 0, len(items))
-	
+
 	// Не сортируем - бэк уже возвращает в правильном порядке
 	for _, item := range items {
 		// Определяем тип занятия (сокращенная форма)
-		typeStr := item.Type
+		var typeStr string
 		switch item.Type {
 		case "lecture":
 			typeStr = "ЛК"
@@ -471,42 +495,42 @@ func (p *PagesAPI) formatScheduleItemsNew(items []services.ScheduleItem) []strin
 		default:
 			typeStr = item.Type
 		}
-		
+
 		// Определяем место и примечание
 		room := item.Room
 		note := item.Note
-		
+
 		// Если есть undergroup, добавляем его в note
 		if item.Undergroup != "" && note == "" {
 			note = item.Undergroup
 		}
-		
+
 		// Форматируем элемент расписания в новом формате
 		formatted := utils.FormatScheduleItemNew(item.Start, item.End, item.Title, typeStr, room, note)
 		result = append(result, formatted)
 	}
-	
+
 	return result
 }
 
 // buildServicesPageText строит текст и клавиатуру для страницы сервисов
 func (p *PagesAPI) buildServicesPageText(ctx context.Context, userID int64) (string, *maxbot.Keyboard) {
 	text := utils.FormatHeader("Сервисы") + "\n\n"
-	
+
 	// Получаем сервисы и платформы из API
 	servicesResp, errServices := p.universityAPI.GetServices(ctx, userID)
 	platformsResp, errPlatforms := p.universityAPI.GetPlatforms(ctx, userID)
-	
+
 	if errServices != nil {
 		log.Printf("Error getting services from API: %v", errServices)
 	}
 	if errPlatforms != nil {
 		log.Printf("Error getting platforms from API: %v", errPlatforms)
 	}
-	
+
 	var servicesList []services.Service
 	var platformsList []services.Platform
-	
+
 	if servicesResp != nil && servicesResp.Success {
 		servicesList = servicesResp.Services
 	}
@@ -515,25 +539,25 @@ func (p *PagesAPI) buildServicesPageText(ctx context.Context, userID int64) (str
 	}
 
 	// Создаем клавиатуру с сервисами и платформами
-	keyboard := p.keyboards.ServicesMenuWithData(servicesList, platformsList)
-	
+	keyboard := p.keyboards.ServicesMenuWithData(servicesList, platformsList, p.webAppURL)
+
 	return text, keyboard
 }
 
 // buildProfilePageText строит текст для страницы профиля
 func (p *PagesAPI) buildProfilePageText(ctx context.Context, userID int64) (string, *maxbot.Keyboard) {
 	width := 22
-	
+
 	// Получаем режим подгруппы
 	subgroupMode := services.GetSubgroupMode(userID)
 	subgroupModeStr := string(subgroupMode)
-	
+
 	// Получаем данные из API
 	personalDataResp, errPersonalData := p.universityAPI.GetPersonalData(ctx, userID)
 	userResp, errUser := p.universityAPI.GetUser(ctx, userID)
-	
+
 	text := ""
-	
+
 	// Название университета
 	var universityName string
 	if errUser == nil && userResp != nil {
@@ -542,13 +566,13 @@ func (p *PagesAPI) buildProfilePageText(ctx context.Context, userID int64) (stri
 			universityName = universityResp.Name
 		}
 	}
-	
+
 	text += utils.FormatSeparator(width) + "\n"
 	if universityName != "" {
 		text += universityName + "\n"
 	}
 	text += utils.FormatSeparator(width) + "\n"
-	
+
 	// ФИО и статус
 	var fullName, course string
 	if errPersonalData == nil && personalDataResp != nil && personalDataResp.Data != nil {
@@ -573,7 +597,7 @@ func (p *PagesAPI) buildProfilePageText(ctx context.Context, userID int64) (stri
 			course = c
 		}
 	}
-	
+
 	if fullName != "" {
 		text += fullName + "\n"
 	}
@@ -581,7 +605,7 @@ func (p *PagesAPI) buildProfilePageText(ctx context.Context, userID int64) (stri
 		text += "Студент, " + course + " курс\n"
 	}
 	text += utils.FormatSeparator(width) + "\n"
-	
+
 	// Зачетка и долги
 	var avgGrade, debts string
 	if errPersonalData == nil && personalDataResp != nil && personalDataResp.Data != nil {
@@ -593,14 +617,14 @@ func (p *PagesAPI) buildProfilePageText(ctx context.Context, userID int64) (stri
 		avgGrade = "-"
 		debts = "-"
 	}
-	
+
 	text += "Зачётка\n"
 	text += "🟦 " + avgGrade + " ср. балл\n"
 	text += "\n"
 	text += "Долги\n"
 	text += "😎 " + debts + " долгов\n"
 	text += utils.FormatSeparator(width) + "\n"
-	
+
 	// Дополнительная информация
 	if errPersonalData == nil && personalDataResp != nil && personalDataResp.Data != nil {
 		if faculty, ok := personalDataResp.Data["faculty"].(string); ok && faculty != "" {
@@ -628,12 +652,12 @@ func (p *PagesAPI) buildProfilePageText(ctx context.Context, userID int64) (stri
 			text += zachetka + "\n"
 		}
 	}
-	
+
 	text += utils.FormatSeparator(width) + "\n"
-	
+
 	// MAX ID и контакты
 	text += "MAX ID: " + fmt.Sprintf("%d", userID) + "\n"
-	
+
 	if errPersonalData == nil && personalDataResp != nil && personalDataResp.Data != nil {
 		if phone, ok := personalDataResp.Data["phone"].(string); ok && phone != "" {
 			text += "Телефон: " + phone + "\n"
@@ -642,22 +666,35 @@ func (p *PagesAPI) buildProfilePageText(ctx context.Context, userID int64) (stri
 			text += "Дата рождения: " + birthday + "\n"
 		}
 	}
-	
-	keyboard := p.keyboards.ProfileMenu(subgroupModeStr)
+
+	keyboard := p.keyboards.ProfileMenu(subgroupModeStr, p.webAppURL)
 	return text, keyboard
 }
 
 // HandleCallback обрабатывает callback от кнопок
 func (p *PagesAPI) HandleCallback(ctx context.Context, callback schemes.Callback, userID int64, originalMessage *schemes.Message) error {
+	// Проверяем, залогинен ли пользователь в системе
+	statusResp, err := p.GetStudentStatus(ctx, userID)
+	if err != nil {
+		log.Printf("Failed to check student status: %v", err)
+		// В случае ошибки показываем страницу авторизации
+		return p.ShowAuthRequiredPage(ctx, userID)
+	}
+
+	// Если пользователь не залогинен, показываем страницу авторизации
+	if statusResp == nil || !statusResp.IsLinked {
+		return p.ShowAuthRequiredPage(ctx, userID)
+	}
+
 	// Используем Payload для определения действия (CallbackID - это идентификатор клавиатуры)
 	action := types.NavigationAction(callback.Payload)
-	
+
 	log.Printf("Processing callback: payload=%s, callback_id=%s", callback.Payload, callback.CallbackID)
 
 	// Генерируем новый текст и клавиатуру в зависимости от действия
 	var newText string
 	var newKeyboard *maxbot.Keyboard
-	
+
 	switch action {
 	case types.ActionOpenMain, types.ActionHome:
 		newText, newKeyboard = p.buildMainPageText(ctx, userID, "today")
@@ -683,8 +720,77 @@ func (p *PagesAPI) HandleCallback(ctx context.Context, callback schemes.Callback
 	case types.ActionBack:
 		newText, newKeyboard = p.buildMainPageText(ctx, userID, "today")
 	default:
-		// Для остальных действий показываем главную страницу
-		newText, newKeyboard = p.buildMainPageText(ctx, userID, "today")
+		// Обработка декоративной кнопки веб-приложения
+		if callback.Payload == "web_app_info" {
+			// Просто показываем уведомление без изменения сообщения
+			answer := &schemes.CallbackAnswer{
+				Notification: "Веб-приложение доступно по ссылке: " + p.webAppURL,
+			}
+			_, err := p.api.Messages.AnswerOnCallback(ctx, callback.CallbackID, answer)
+			return err
+		}
+
+		// Обработка преподавателей
+		payload := callback.Payload
+		log.Printf("Processing teacher callback: payload=%s", payload)
+		if payload == "service_teachers" {
+			// Показываем алфавит
+			log.Printf("Showing teachers alphabet")
+			newText, newKeyboard = p.buildTeachersAlphabetPage(ctx, userID)
+		} else if strings.HasPrefix(payload, "teacher_letter_") {
+			// Формат: teacher_letter_А (буква кириллицы)
+			letter := payload[len("teacher_letter_"):]
+			log.Printf("Processing teacher letter: %s", letter)
+			// Преобразуем букву в верхний регистр для сравнения
+			letterRunes := []rune(letter)
+			if len(letterRunes) > 0 {
+				letter = string([]rune{letterRunes[0]})
+			}
+			log.Printf("Showing teachers list for letter: %s", letter)
+			newText, newKeyboard = p.buildTeachersListPage(ctx, userID, letter, 0)
+		} else if strings.HasPrefix(payload, "teacher_page_") {
+			// Формат: teacher_page_А_0 (буква и номер страницы)
+			parts := payload[len("teacher_page_"):]
+			// Находим последний подчеркивание
+			lastUnderscore := -1
+			for i := len(parts) - 1; i >= 0; i-- {
+				if parts[i] == '_' {
+					lastUnderscore = i
+					break
+				}
+			}
+			if lastUnderscore > 0 {
+				letter := parts[:lastUnderscore]
+				// Преобразуем букву в верхний регистр
+				letterRunes := []rune(letter)
+				if len(letterRunes) > 0 {
+					letter = string([]rune{letterRunes[0]})
+				}
+				var page int
+				fmt.Sscanf(parts[lastUnderscore+1:], "%d", &page)
+				newText, newKeyboard = p.buildTeachersListPage(ctx, userID, letter, page)
+			}
+		} else if strings.HasPrefix(payload, "teacher_info_") {
+			// Формат: teacher_info_tech123
+			teacherID := payload[len("teacher_info_"):]
+			newText, newKeyboard, _ = p.buildTeacherInfoPage(ctx, userID, teacherID)
+		} else if payload == "service_maps" || payload == "open_maps" {
+			// Показываем список корпусов
+			newText, newKeyboard = p.buildMapsListPage(ctx, userID, 0)
+		} else if strings.HasPrefix(payload, "maps_page_") {
+			// Формат: maps_page_0 (номер страницы)
+			var page int
+			fmt.Sscanf(payload[len("maps_page_"):], "%d", &page)
+			newText, newKeyboard = p.buildMapsListPage(ctx, userID, page)
+		} else if strings.HasPrefix(payload, "map_info_") {
+			// Формат: map_info_0 (индекс корпуса)
+			var index int
+			fmt.Sscanf(payload[len("map_info_"):], "%d", &index)
+			newText, newKeyboard = p.buildMapInfoPage(ctx, userID, index)
+		} else {
+			// Для остальных действий показываем главную страницу
+			newText, newKeyboard = p.buildMainPageText(ctx, userID, "today")
+		}
 	}
 
 	// Создаем новое сообщение для редактирования
@@ -697,8 +803,8 @@ func (p *PagesAPI) HandleCallback(ctx context.Context, callback schemes.Callback
 	// Получаем NewMessageBody из сообщения (нужно получить доступ к внутреннему полю)
 	// Создаем NewMessageBody вручную
 	newMessageBody := &schemes.NewMessageBody{
-		Text:     newText,
-		Format:   "markdown",
+		Text:        newText,
+		Format:      "markdown",
 		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(newKeyboard.Build())},
 	}
 
@@ -706,27 +812,310 @@ func (p *PagesAPI) HandleCallback(ctx context.Context, callback schemes.Callback
 	answer := &schemes.CallbackAnswer{
 		Message: newMessageBody,
 	}
-	
-	_, err := p.api.Messages.AnswerOnCallback(ctx, callback.CallbackID, answer)
-	if err != nil {
-		log.Printf("Error answering callback: %v", err)
-		// Если редактирование не удалось, отправляем новое сообщение
-		_, err = p.api.Messages.Send(ctx, newMsg)
+
+	// Логируем информацию для отладки
+	log.Printf("Answering callback: callback_id=%s, text_length=%d, attachments_count=%d",
+		callback.CallbackID, len(newText), len(newMessageBody.Attachments))
+
+	_, callbackErr := p.api.Messages.AnswerOnCallback(ctx, callback.CallbackID, answer)
+	if callbackErr != nil {
+		log.Printf("Error answering callback: %v", callbackErr)
+		// Если редактирование не удалось (404 может означать, что callback_id устарел),
+		// отправляем новое сообщение
+		log.Printf("Sending new message instead of editing")
+		_, sendErr := p.api.Messages.Send(ctx, newMsg)
+		if sendErr != nil {
+			log.Printf("Error sending new message: %v", sendErr)
+			return sendErr
+		}
 	}
-	
-	return err
+
+	return nil
 }
 
 // formatDate форматирует дату в читаемый формат
 func formatDate(t time.Time) string {
 	weekdays := []string{"Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"}
 	months := []string{"января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"}
-	
+
 	weekday := weekdays[t.Weekday()]
 	day := t.Day()
 	month := months[t.Month()-1]
 	year := t.Year()
-	
+
 	return fmt.Sprintf("%s, %d %s %d", weekday, day, month, year)
 }
 
+// formatTeacherName форматирует имя преподавателя в формат "Фамилия И.О."
+func formatTeacherName(fullName string) string {
+	parts := []rune(fullName)
+	words := []string{}
+	currentWord := ""
+
+	for _, r := range parts {
+		if r == ' ' {
+			if currentWord != "" {
+				words = append(words, currentWord)
+				currentWord = ""
+			}
+		} else {
+			currentWord += string(r)
+		}
+	}
+	if currentWord != "" {
+		words = append(words, currentWord)
+	}
+
+	if len(words) == 0 {
+		return fullName
+	}
+
+	// Если есть хотя бы фамилия и имя
+	if len(words) >= 2 {
+		surname := words[0]
+		initials := ""
+		// Берем первые буквы всех остальных слов (имя, отчество)
+		for i := 1; i < len(words) && i < 4; i++ {
+			wordRunes := []rune(words[i])
+			if len(wordRunes) > 0 {
+				initials += string(wordRunes[0]) + "."
+			}
+		}
+		if initials != "" {
+			return fmt.Sprintf("%s %s", surname, initials)
+		}
+		return surname
+	}
+
+	return fullName
+}
+
+// buildTeachersAlphabetPage показывает алфавит для поиска преподавателей
+func (p *PagesAPI) buildTeachersAlphabetPage(ctx context.Context, userID int64) (string, *maxbot.Keyboard) {
+	text := utils.FormatHeader("Преподаватели") + "\n\n"
+	text += "*Поиск преподавателя по ФИО:*\n"
+	text += "Пример: если надо найти Обломов Игорь Александрович, надо нажать на О\n"
+
+	keyboard := p.keyboards.TeachersAlphabetMenu(p.webAppURL)
+
+	return text, keyboard
+}
+
+// buildTeachersListPage показывает список преподавателей по букве с пагинацией
+func (p *PagesAPI) buildTeachersListPage(ctx context.Context, userID int64, letter string, page int) (string, *maxbot.Keyboard) {
+	// Получаем список всех преподавателей
+	teachersResp, err := p.universityAPI.GetTeachers(ctx, userID)
+	if err != nil {
+		log.Printf("Failed to get teachers: %v", err)
+		text := utils.FormatHeader("Ошибка") + "\n\n"
+		text += "Не удалось загрузить список преподавателей."
+		// Используем главное меню
+		_, keyboard := p.buildMainPageText(ctx, userID, "today")
+		return text, keyboard
+	}
+
+	// Фильтруем преподавателей по первой букве фамилии
+	var filteredTeachers []services.Teacher
+	letterUpper := strings.ToUpper(letter)
+	for _, teacher := range teachersResp.Teachers {
+		// Получаем первую букву фамилии
+		firstChar := ""
+		if len(teacher.Name) > 0 {
+			firstChar = string([]rune(teacher.Name)[0])
+			firstChar = strings.ToUpper(firstChar)
+		}
+		// Сравниваем с учетом регистра
+		if firstChar == letterUpper {
+			filteredTeachers = append(filteredTeachers, teacher)
+		}
+	}
+
+	// Пагинация: по 20 преподавателей на страницу
+	const pageSize = 20
+	totalPages := (len(filteredTeachers) + pageSize - 1) / pageSize
+
+	if totalPages == 0 {
+		text := utils.FormatHeader("Преподаватели") + "\n\n"
+		text += fmt.Sprintf("*Преподаватели на \"%s\"*\n\n", letter)
+		text += "Не найдено преподавателей, начинающихся с этой буквы."
+		keyboard := p.keyboards.TeachersAlphabetMenu(p.webAppURL)
+		return text, keyboard
+	}
+
+
+	// Корректируем номер страницы
+	if page < 0 {
+		page = 0
+	}
+	if page >= totalPages {
+		page = totalPages - 1
+	}
+
+	// Получаем преподавателей для текущей страницы
+	start := page * pageSize
+	end := start + pageSize
+	if end > len(filteredTeachers) {
+		end = len(filteredTeachers)
+	}
+	pageTeachers := filteredTeachers[start:end]
+
+	// Формируем текст
+	text := utils.FormatHeader("Преподаватели") + "\n\n"
+	text += fmt.Sprintf("*Преподаватели на \"%s\"*\n\n", letter)
+
+	// Нумеруем преподавателей (номер учитывает страницу)
+	globalIndex := page * pageSize
+	for i, teacher := range pageTeachers {
+		number := globalIndex + i + 1
+		// В тексте используем полное ФИО с номером
+		text += fmt.Sprintf("%d) %s\n", number, teacher.Name)
+	}
+
+	text += fmt.Sprintf("\n_Страница %d из %d_\n", page+1, totalPages)
+
+	// Создаем клавиатуру с кнопками преподавателей и пагинацией
+	keyboard := p.keyboards.TeachersListMenu(pageTeachers, letter, page, totalPages, p.webAppURL)
+
+	return text, keyboard
+}
+
+// buildTeacherInfoPage показывает детальную информацию о преподавателе
+func (p *PagesAPI) buildTeacherInfoPage(ctx context.Context, userID int64, teacherID string) (string, *maxbot.Keyboard, string) {
+	// Получаем информацию о преподавателе
+	teacherInfoResp, err := p.universityAPI.GetTeacherInfo(ctx, userID, teacherID)
+	if err != nil {
+		log.Printf("Failed to get teacher info: %v", err)
+		text := utils.FormatHeader("Ошибка") + "\n\n"
+		text += "Не удалось загрузить информацию о преподавателе."
+		keyboard := p.keyboards.TeachersAlphabetMenu(p.webAppURL)
+		return text, keyboard, ""
+	}
+
+	// Получаем имя преподавателя из списка
+	teachersResp, err := p.universityAPI.GetTeachers(ctx, userID)
+	var teacherName string
+	if err == nil {
+		for _, teacher := range teachersResp.Teachers {
+			if teacher.ID == teacherID {
+				teacherName = teacher.Name
+				break
+			}
+		}
+	}
+
+	if teacherName == "" {
+		teacherName = "Преподаватель"
+	}
+
+	// Формируем текст
+	text := utils.FormatHeader("Информация о преподавателе") + "\n\n"
+	text += fmt.Sprintf("*%s*\n\n", teacherName)
+
+	if len(teacherInfoResp.Departments) > 0 {
+		text += utils.FormatSection("Кафедры") + "\n"
+		for _, dept := range teacherInfoResp.Departments {
+			text += fmt.Sprintf("• %s\n", dept)
+		}
+		text += "\n"
+	}
+
+	// Создаем клавиатуру с навигацией
+	keyboard := p.keyboards.TeacherInfoMenu(p.webAppURL)
+
+	return text, keyboard, ""
+}
+
+// buildMapsListPage показывает список корпусов с пагинацией
+func (p *PagesAPI) buildMapsListPage(ctx context.Context, userID int64, page int) (string, *maxbot.Keyboard) {
+	// Получаем список всех корпусов
+	mapsResp, err := p.universityAPI.GetMaps(ctx, userID)
+	if err != nil {
+		log.Printf("Failed to get maps: %v", err)
+		text := utils.FormatHeader("Ошибка") + "\n\n"
+		text += "Не удалось загрузить список корпусов."
+		// Используем главное меню
+		_, keyboard := p.buildMainPageText(ctx, userID, "today")
+		return text, keyboard
+	}
+
+	buildings := mapsResp.Buildings
+	if len(buildings) == 0 {
+		text := utils.FormatHeader("Карта") + "\n\n"
+		text += "Корпуса не найдены."
+		keyboard := p.keyboards.MapsListMenu([]services.Building{}, 0, 0, p.webAppURL)
+		return text, keyboard
+	}
+
+	// Пагинация: по 20 корпусов на страницу
+	const pageSize = 20
+	totalPages := (len(buildings) + pageSize - 1) / pageSize
+
+	// Корректируем номер страницы
+	if page < 0 {
+		page = 0
+	}
+	if page >= totalPages {
+		page = totalPages - 1
+	}
+
+	// Получаем корпуса для текущей страницы
+	start := page * pageSize
+	end := start + pageSize
+	if end > len(buildings) {
+		end = len(buildings)
+	}
+	pageBuildings := buildings[start:end]
+
+	// Формируем текст
+	text := utils.FormatHeader("Карта") + "\n\n"
+	text += "*Корпуса университета*\n\n"
+
+	// Нумеруем корпуса (номер учитывает страницу)
+	globalIndex := page * pageSize
+	for i, building := range pageBuildings {
+		number := globalIndex + i + 1
+		text += fmt.Sprintf("%d) %s\n", number, building.Name)
+	}
+
+	text += fmt.Sprintf("\n_Страница %d из %d_\n", page+1, totalPages)
+
+	// Создаем клавиатуру с кнопками корпусов и пагинацией
+	keyboard := p.keyboards.MapsListMenu(pageBuildings, page, totalPages, p.webAppURL)
+
+	return text, keyboard
+}
+
+// buildMapInfoPage показывает информацию о конкретном корпусе с кнопками-ссылками
+func (p *PagesAPI) buildMapInfoPage(ctx context.Context, userID int64, buildingIndex int) (string, *maxbot.Keyboard) {
+	// Получаем список всех корпусов
+	mapsResp, err := p.universityAPI.GetMaps(ctx, userID)
+	if err != nil {
+		log.Printf("Failed to get maps: %v", err)
+		text := utils.FormatHeader("Ошибка") + "\n\n"
+		text += "Не удалось загрузить информацию о корпусе."
+		keyboard := p.keyboards.MapsListMenu([]services.Building{}, 0, 0, p.webAppURL)
+		return text, keyboard
+	}
+
+	if buildingIndex < 0 || buildingIndex >= len(mapsResp.Buildings) {
+		text := utils.FormatHeader("Ошибка") + "\n\n"
+		text += "Корпус не найден."
+		keyboard := p.keyboards.MapsListMenu([]services.Building{}, 0, 0, p.webAppURL)
+		return text, keyboard
+	}
+
+	building := mapsResp.Buildings[buildingIndex]
+
+	// Формируем текст
+	text := utils.FormatHeader("Карта") + "\n\n"
+	text += fmt.Sprintf("*%s*\n\n", building.Name)
+
+	if building.Latitude != 0 && building.Longitude != 0 {
+		text += fmt.Sprintf("Координаты: %.6f, %.6f\n\n", building.Latitude, building.Longitude)
+	}
+
+	// Создаем клавиатуру с кнопками-ссылками на карты
+	keyboard := p.keyboards.MapInfoMenu(building, p.webAppURL)
+
+	return text, keyboard
+}

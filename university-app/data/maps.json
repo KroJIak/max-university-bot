@@ -1,0 +1,21 @@
+{
+  "buildings": [
+    {
+      "name": "Главный корпус",
+      "latitude": 56.123456,
+      "longitude": 47.123456,
+      "yandex_map_url": "https://yandex.ru/maps/?pt=47.123456,56.123456&z=17",
+      "gis2_map_url": "https://2gis.ru/cheboksary/firm/70000001012345678",
+      "google_map_url": "https://www.google.com/maps?q=56.123456,47.123456"
+    },
+    {
+      "name": "Корпус №2",
+      "latitude": 56.125000,
+      "longitude": 47.125000,
+      "yandex_map_url": "https://yandex.ru/maps/?pt=47.125000,56.125000&z=17",
+      "gis2_map_url": "https://2gis.ru/cheboksary/firm/70000001012345679",
+      "google_map_url": "https://www.google.com/maps?q=56.125000,47.125000"
+    }
+  ]
+}
+

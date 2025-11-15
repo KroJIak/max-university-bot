@@ -13,11 +13,11 @@ class UserCreate(BaseModel):
     
     Создает нового пользователя в системе MAX с привязкой к университету.
     """
-    user_id: int = Field(..., description="ID пользователя в системе MAX (Telegram user_id)", example=123456789)
+    user_id: int = Field(..., description="ID пользователя в системе MAX", example=123456789)
     university_id: int = Field(..., description="ID университета, к которому привязан пользователь", example=1)
     first_name: str = Field(..., description="Имя пользователя", example="Иван")
     last_name: str | None = Field(None, description="Фамилия пользователя", example="Иванов")
-    username: str | None = Field(None, description="Username пользователя в Telegram", example="ivan_ivanov")
+    username: str | None = Field(None, description="Username пользователя в MAX", example="ivan_ivanov")
     
     class Config:
         json_schema_extra = {
@@ -56,11 +56,11 @@ class UserResponse(BaseModel):
     Содержит полную информацию о пользователе системы MAX.
     """
     id: int = Field(..., description="Внутренний ID пользователя в БД", example=1)
-    user_id: int = Field(..., description="ID пользователя в системе MAX (Telegram user_id)", example=123456789)
+    user_id: int = Field(..., description="ID пользователя в системе MAX", example=123456789)
     university_id: int = Field(..., description="ID университета, к которому привязан пользователь", example=1)
     first_name: str = Field(..., description="Имя пользователя", example="Иван")
     last_name: str | None = Field(None, description="Фамилия пользователя", example="Иванов")
-    username: str | None = Field(None, description="Username пользователя в Telegram", example="ivan_ivanov")
+    username: str | None = Field(None, description="Username пользователя в MAX", example="ivan_ivanov")
 
     class Config:
         from_attributes = True
@@ -82,7 +82,7 @@ class UserResponse(BaseModel):
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Создать пользователя",
-    description="Создает нового пользователя в системе MAX с привязкой к университету. Пользователь должен существовать в Telegram и иметь уникальный user_id.",
+    description="Создает нового пользователя в системе MAX с привязкой к университету. Пользователь должен существовать в MAX и иметь уникальный user_id.",
     response_description="Созданный пользователь с полной информацией",
     responses={
         201: {"description": "Пользователь успешно создан"},
@@ -94,7 +94,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     """Создать нового пользователя
     
     Создает нового пользователя в системе MAX с привязкой к указанному университету.
-    Пользователь должен существовать в Telegram и иметь уникальный user_id.
+    Пользователь должен существовать в MAX и иметь уникальный user_id.
     
     **Примеры использования:**
     
@@ -147,7 +147,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     "/users/{user_id}",
     response_model=UserResponse,
     summary="Получить пользователя",
-    description="Получает информацию о пользователе по его user_id (Telegram user_id).",
+    description="Получает информацию о пользователе по его user_id.",
     response_description="Информация о пользователе",
     responses={
         200: {"description": "Пользователь найден"},
@@ -157,10 +157,10 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
 async def get_user(user_id: int, db: Session = Depends(get_db)):
     """Получить пользователя по user_id
     
-    Возвращает полную информацию о пользователе по его Telegram user_id.
+    Возвращает полную информацию о пользователе по его user_id.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     
@@ -240,7 +240,7 @@ async def update_user(
     Обновляет данные пользователя. Можно обновить только указанные поля.
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     - `user_update`: Данные для обновления (все поля опциональны)
     
     **Примеры использования:**
@@ -295,7 +295,7 @@ async def delete_user(user_id: int, db: Session = Depends(get_db)):
     Также удаляются все связанные данные (credentials студентов и т.д.).
     
     **Параметры:**
-    - `user_id`: ID пользователя в системе MAX (Telegram user_id)
+    - `user_id`: ID пользователя в системе MAX
     
     **Примеры использования:**
     

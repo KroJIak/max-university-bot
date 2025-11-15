@@ -8,3 +8,4 @@ export { PrimaryServicesPage } from './PrimaryServicesPage';
 export { PlatformsPage } from './PlatformsPage';
 export { TeachersPage } from './TeachersPage';
 export { TeacherDetailPage } from './TeacherDetailPage';
+export { ClubsPage } from './ClubsPage';

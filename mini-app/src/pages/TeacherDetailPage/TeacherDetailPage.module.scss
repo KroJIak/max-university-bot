@@ -5,6 +5,19 @@
   padding: 0 var(--page-padding-inline) var(--page-padding-bottom);
 }
 
+.page:has(.loading) {
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+}
+
+.loading {
+  margin: 32px 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: clamp(15px, 4vw, 18px);
+}
+
 .card {
   display: flex;
   flex-direction: column;

@@ -77,8 +77,18 @@ class StudentCredentialsRepository:
         return True
 
     def delete(self, user_id: int) -> bool:
-        """Полностью удалить связь из БД"""
+        """Полностью удалить связь из БД (только активную)"""
         db_credential = self.get_by_user_id(user_id)
+        if not db_credential:
+            return False
+        
+        self.db.delete(db_credential)
+        self.db.commit()
+        return True
+    
+    def delete_by_user_id(self, user_id: int) -> bool:
+        """Полностью удалить связь из БД по user_id (включая неактивные)"""
+        db_credential = self.get_by_user_id_any(user_id)
         if not db_credential:
             return False
         

@@ -9,8 +9,8 @@ export default defineConfig(({ mode }) => {
   const rootEnv = loadEnv(mode, resolve(projectRoot, '..'), '');
   const env = loadEnv(mode, projectRoot, '');
   
-  // Используем MAX_API_DOMAIN_URL из корневого .env, если VITE_API_BASE_URL не задан
-  const apiBaseUrl = env.VITE_API_BASE_URL || rootEnv.MAX_API_DOMAIN_URL || '';
+  // Используем MAX_API_DOMAIN_URL из корневого .env или process.env, если VITE_API_BASE_URL не задан
+  const apiBaseUrl = env.VITE_API_BASE_URL || rootEnv.MAX_API_DOMAIN_URL || process.env.VITE_API_BASE_URL || process.env.MAX_API_DOMAIN_URL || '';
 
   const cloudpubUrl =
     env.CLOUDPUB_URL ||

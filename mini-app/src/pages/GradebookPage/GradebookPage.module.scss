@@ -1,0 +1,131 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-gap);
+  padding: 0 var(--page-padding-inline) var(--page-padding-bottom);
+}
+
+.semesterSelector {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.semesterButton {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--color-surface-soft);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.semesterButton:hover {
+  background: var(--color-surface-hover);
+}
+
+.semesterButtonActive {
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-gap);
+}
+
+.card {
+  border-radius: var(--radius-lg);
+  padding: clamp(18px, 5vw, 26px);
+  background: var(--color-surface-primary);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 4vw, 24px);
+  box-shadow: var(--shadow-elevated);
+}
+
+.sectionTitle {
+  font-size: clamp(22px, 5vw, 26px);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+  gap: 16px;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.subject {
+  flex: 1;
+  font-size: 15px;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+
+.grade,
+.credit {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 44px;
+  text-align: center;
+}
+
+.gradeExcellent {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.gradeGood {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.gradeSatisfactory {
+  background: rgba(249, 115, 22, 0.2);
+  color: #f97316;
+}
+
+.gradeEmpty,
+.creditEmpty {
+  width: 44px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+}
+
+.creditPassed {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+

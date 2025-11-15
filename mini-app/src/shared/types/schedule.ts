@@ -13,6 +13,11 @@ export type ScheduleItem = {
   room: string;
   note: string;
   audience?: LessonAudience;
+  // Дополнительные поля для детальной информации
+  date?: string;
+  teacher?: string;
+  additional_info?: string | null;
+  undergruop?: string;
 };
 
 export type DayTab = {

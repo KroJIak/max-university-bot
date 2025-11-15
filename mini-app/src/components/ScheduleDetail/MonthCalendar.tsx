@@ -77,8 +77,7 @@ export function MonthCalendar({
               className={className}
               onClick={() => onSelectDate(cell.date)}
             >
-              {cell.label}
-              {cell.hasLessons && <span className={styles.dayBadge} />}
+              <span>{cell.label}</span>
             </button>
           );
         })}
