@@ -88,17 +88,17 @@ class ScheduleScraper(BaseScraper):
         7. Перейти на страницу расписания группы
         8. Определить текущий период (осенний семестр, зимняя сессия, весенний семестр, летняя сессия)
         9. Получить расписание с параметрами pertype и htype
-
+        
         Args:
             date_range: Промежуток дней в формате ДД.ММ-ДД.ММ (например: 10.11-03.12) или один день (например: 04.11)
             cookies_json: JSON строка с cookies от tt.chuvsu.ru (обязательно)
             lk_cookies_json: JSON строка с cookies от lk.chuvsu.ru (опционально, для получения personal_data)
-
+        
         Returns:
-        dict с ключами:
-        - success: bool - успешно ли получены данные
+            dict с ключами:
+            - success: bool - успешно ли получены данные
             - schedule: list - список занятий (если успешно)
-        - error: str - сообщение об ошибке (если неуспешно)
+            - error: str - сообщение об ошибке (если неуспешно)
         """
         try:
             logger.info(f"[SCHEDULE_SCRAPER] Начало получения расписания: date_range={date_range}")
@@ -129,7 +129,7 @@ class ScheduleScraper(BaseScraper):
             # Устанавливаем cookies для tt.chuvsu.ru
             logger.info("[SCHEDULE_SCRAPER] Устанавливаем cookies для сессии")
             self.set_session_cookies(cookies_json)
-
+            
             # Шаг 1: Получаем главную страницу tt.chuvsu.ru
             tt_base_url = "https://tt.chuvsu.ru"
             logger.info(f"[SCHEDULE_SCRAPER] Шаг 1: Получаем главную страницу {tt_base_url}")
@@ -285,7 +285,7 @@ class ScheduleScraper(BaseScraper):
             if group_id and faculty_id:
                 logger.info(f"[SCHEDULE_SCRAPER] Используем данные из JSON: faculty_id={faculty_id}, group_id={group_id}")
                 # Пропускаем шаги 4-6 и переходим сразу к шагу 7
-        else:
+            else:
                 logger.info(f"[SCHEDULE_SCRAPER] Данные не найдены в JSON, парсим с сайта")
                 # Шаг 4: Находим нужный id факультета по названию
                 logger.info(f"[SCHEDULE_SCRAPER] Шаг 4: Ищем факультет '{student_faculty}' в списке факультетов")
@@ -329,8 +329,8 @@ class ScheduleScraper(BaseScraper):
                         "error": f"Ошибка при получении страницы с группами: HTTP {response.status_code}"
                     }
                 
-            soup = BeautifulSoup(response.text, 'html.parser')
-
+                soup = BeautifulSoup(response.text, 'html.parser')
+                
                 # Шаг 6: Находим форму с кнопками групп
                 logger.info(f"[SCHEDULE_SCRAPER] Шаг 6: Ищем группу '{student_group}' в списке групп")
                 logger.info("[SCHEDULE_SCRAPER] Ищем форму с id='tt' и method='post'")
@@ -528,7 +528,7 @@ class ScheduleScraper(BaseScraper):
                             if month:
                                 current_date = datetime(year, month, day)
                                 logger.info(f"[SCHEDULE_SCRAPER] Распарсена дата: {current_date.strftime('%d.%m.%Y')}")
-            else:
+                            else:
                                 logger.error(f"[SCHEDULE_SCRAPER] Неизвестный месяц: {month_name}")
                         else:
                             logger.error(f"[SCHEDULE_SCRAPER] Неверный формат даты: {date_text} (ожидается 3 части, получено {len(parts)})")
@@ -738,15 +738,15 @@ class ScheduleScraper(BaseScraper):
                             logger.info(f"[SCHEDULE_SCRAPER] Найден день недели: {day_name} ({current_day})")
                             break
                     i += 1
-                        continue
-
+                    continue
+                
                 # Проверяем, является ли строка парой (even или odd, но не trfd)
                 if ('even' in row_class or 'odd' in row_class) and 'trfd' not in row_class:
                     cells = row.find_all('td')
                     logger.debug(f"[SCHEDULE_SCRAPER] Строка с классом {row_class}, найдено {len(cells)} ячеек")
-                if len(cells) >= 2:
+                    if len(cells) >= 2:
                         # Первая ячейка - номер пары и время
-                    time_cell = cells[0]
+                        time_cell = cells[0]
                         time_cell_classes = time_cell.get('class', [])
                         logger.debug(f"[SCHEDULE_SCRAPER] Первая ячейка: классы={time_cell_classes}, текст='{time_cell.get_text(strip=True)[:100]}'")
                         if 'trf' in time_cell_classes and 'trdata' in time_cell_classes:
@@ -775,8 +775,8 @@ class ScheduleScraper(BaseScraper):
                             subject_td = subject_row.find('td', {'class': 'want'})
                             if not subject_td:
                                 logger.debug(f"[SCHEDULE_SCRAPER] Пропущена строка без td.want")
-                        continue
-
+                                continue
+                            
                             subjects_found += 1
                         
                             # Проверяем, есть ли красная рамка (может быть отдельный блок или встроенная)
@@ -801,8 +801,8 @@ class ScheduleScraper(BaseScraper):
                                     'type': 1  # Тип изменения
                                 })
                                 logger.info(f"[SCHEDULE_SCRAPER] Добавлен предмет типа 1 (перенос) в change_list, день={current_day}, пара={current_pair_number}")
-                        continue
-
+                                continue
+                        
                             # Типы 2 и 3: встроенные изменения в нормальном блоке
                             if red_border_divs:
                                 # Определяем тип: если есть "перенос на" - тип 2, иначе тип 3
@@ -846,11 +846,11 @@ class ScheduleScraper(BaseScraper):
                             # Тип пары: (пр), (лб), (лк)
                             type_match = re.search(r'\((пр|лб|лк)\)', subject_text)
                             type_text = None
-                    if type_match:
-                        type_abbr = type_match.group(1)
+                            if type_match:
+                                type_abbr = type_match.group(1)
                                 type_map = {'лк': 'Лекция', 'пр': 'Практика', 'лб': 'Лабораторная'}
-                        type_text = type_map.get(type_abbr, type_abbr)
-
+                                type_text = type_map.get(type_abbr, type_abbr)
+                        
                             # Недели: (10 - 13 нед.)
                             weeks_match = re.search(r'\((\d+)\s*-\s*(\d+)\s*нед\.\)', subject_text)
                             week_start = None
@@ -870,7 +870,7 @@ class ScheduleScraper(BaseScraper):
                             
                             # Преподаватель - текст после типа пары и недель
                             teacher = None
-                    additional_info = None
+                            additional_info = None
                             
                             # Извлекаем преподавателя и доп. информацию
                             br_tag = subject_td_copy.find('br')
@@ -882,7 +882,7 @@ class ScheduleScraper(BaseScraper):
                                         teacher = lines[0]
                                         if len(lines) > 1:
                                             additional_info = '\n'.join(lines[1:])
-                        else:
+                            else:
                                 if weeks_match:
                                     weeks_pos = subject_text.find(weeks_match.group(0))
                                     if weeks_pos != -1:
@@ -910,7 +910,7 @@ class ScheduleScraper(BaseScraper):
                             lesson_id = _generate_lesson_id(subject_name or '', date_str, time_start or '', subjects_found)
                             
                             # Добавляем в расписание в новом формате
-                    lesson = {
+                            lesson = {
                                 "id": lesson_id,
                                 "start": time_start or "",
                                 "end": time_end or "",
@@ -920,13 +920,13 @@ class ScheduleScraper(BaseScraper):
                                 "note": note,
                                 "audience": audience,
                                 "date": date_str,
-                        "teacher": teacher,
+                                "teacher": teacher,
                                 "additional_info": additional_info if additional_info else None,
                                 "undergruop": undergruop
-                    }
-                    schedule.append(lesson)
+                            }
+                            schedule.append(lesson)
                             logger.info(f"[SCHEDULE_SCRAPER] ✓ Добавлен предмет: '{subject_name}' на {lesson['date']} {lesson['start']}, день={current_day}, пара={current_pair_number}")
-                else:
+                    else:
                         # Строка не является парой (even/odd без trfd), но не прошла проверку на пару
                         logger.debug(f"[SCHEDULE_SCRAPER] Строка с классом {row_class} не распознана как пара (ячеек: {len(cells)})")
                 else:
@@ -967,21 +967,21 @@ class ScheduleScraper(BaseScraper):
                 "error": None
             }
         except requests.exceptions.SSLError as e:
-        logger.error(f"SSL ошибка при получении расписания: {e}")
+            logger.error(f"SSL ошибка при получении расписания: {e}")
             return {
                 "success": False,
                 "schedule": None,
                 "error": f"Ошибка SSL соединения: {str(e)}"
             }
         except requests.exceptions.RequestException as e:
-        logger.error(f"Ошибка при получении расписания: {e}")
+            logger.error(f"Ошибка при получении расписания: {e}")
             return {
                 "success": False,
                 "schedule": None,
                 "error": f"Ошибка подключения к сайту: {str(e)}"
             }
         except Exception as e:
-        logger.error(f"Неожиданная ошибка при получении расписания: {e}")
+            logger.error(f"Неожиданная ошибка при получении расписания: {e}")
             return {
                 "success": False,
                 "schedule": None,
