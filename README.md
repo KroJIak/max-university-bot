@@ -1,6 +1,6 @@
 # Max University Bot
 
-Max University Bot is a microservices platform for creating university chatbots in the MAX messenger that provide students with access to academic schedules, teacher information, contacts, and personal data. The system automatically retrieves data from university websites via web scraping and supports multiple universities with isolated data through multi-tenancy architecture.
+Max University Bot is a microservices platform for creating university chatbots in the MAX messenger that automatically retrieve academic data from university websites via web scraping and provide students with access to schedules, teacher information, contacts, and personal data, supporting multiple universities with isolated data through multi-tenancy architecture.
 
 ## Содержание
 
