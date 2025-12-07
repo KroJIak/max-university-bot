@@ -1,6 +1,6 @@
 # Max University Bot
 
-Комплексная система для управления университетским ботом с поддержкой multi-tenancy, веб-скрапинга и гибкой конфигурации через админ-панель.
+Max University Bot is a microservices-based platform that enables universities to provide students with access to academic information through a chatbot in the MAX messenger, automatically retrieving data from university websites via web scraping. The system supports multiple universities with isolated data through multi-tenancy architecture, includes a web-based admin panel for flexible configuration, and offers a fallback API for manual data management when web scraping is unavailable.
 
 ## Содержание
 
