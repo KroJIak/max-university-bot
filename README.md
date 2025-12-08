@@ -1,6 +1,20 @@
 # Max University Bot
 
-Max University Bot is a microservices platform for creating university chatbots in the MAX messenger that automatically retrieve academic data from university websites via web scraping and provide students with access to schedules, teacher information, contacts, and personal data, supporting multiple universities with isolated data through multi-tenancy architecture.
+<div align="center">
+
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.23-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![React](https://img.shields.io/badge/React-18.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-3.9-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+[![OpenAPI](https://img.shields.io/badge/API-Swagger%20UI-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](#api-обзор)
+
+</div>
+
+> Max University Bot is a microservices platform for creating university chatbots in the MAX messenger that automatically retrieve academic data from university websites via web scraping and provide students with access to schedules, teacher information, contacts, and personal data, supporting multiple universities with isolated data through multi-tenancy architecture.
 
 ## Содержание
 
